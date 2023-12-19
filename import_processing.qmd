@@ -1,0 +1,441 @@
+---
+title: "Short vs. long RNA-seq (differentiation over timecourse)"
+author: "Michel Tarnow"
+date: today
+format: 
+    html:
+      toc: true
+      self-contained: true
+      highlight-style: github
+      code-line-numbers: true
+editor_options: 
+    chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(RColorBrewer)
+library(edgeR)
+library(UpSetR)
+```
+
+## Load data as counts
+
+```{r}
+# Long-read data (PacBio and Bambu)
+
+# 0.025
+bambu_0.025 <-
+  read.csv(file = "data/bambu_0.025/counts_transcript.txt", sep = "\t")
+bambu_0.025 <- column_to_rownames(bambu_0.025, "TXNAME")
+
+# 0.05
+bambu_0.05 <-
+  read.csv(file = "data/bambu_0.05/counts_transcript.txt", sep = "\t")
+bambu_0.05 <- column_to_rownames(bambu_0.05, "TXNAME")
+
+# 0.1
+bambu_0.1 <-
+  read.csv(file = "data/bambu_0.1/counts_transcript.txt", sep = "\t")
+bambu_0.1 <- column_to_rownames(bambu_0.1, "TXNAME")
+
+# 0.2
+bambu_0.2 <-
+  read.csv(file = "data/bambu_0.2/counts_transcript.txt", sep = "\t")
+bambu_0.2 <- column_to_rownames(bambu_0.2, "TXNAME")
+```
+
+```{r}
+# Short-read data (Illumina and Salmon)
+
+## 0.025
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.025_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0("data/", sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  print(quant)
+  NumReads <- setNames(quant$NumReads, quant$Name)
+  return(NumReads)
+})
+
+salmon_0.025 <- as.data.frame(expr)
+
+## 0.05
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.05_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0("data/", sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  NumReads <- setNames(quant$NumReads, quant$Name)
+  return(NumReads)
+})
+
+salmon_0.05 <- as.data.frame(expr)
+
+## 0.1
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.1_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0("data/", sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  NumReads <- setNames(quant$NumReads, quant$Name)
+  return(NumReads)
+})
+
+salmon_0.1 <- as.data.frame(expr)
+
+## 0.2
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.2_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0("data/", sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  NumReads <- setNames(quant$NumReads, quant$Name)
+  return(NumReads)
+})
+
+salmon_0.2 <- as.data.frame(expr)
+```
+
+```{r}
+dim(salmon_0.025) == dim(bambu_0.025[-1])
+dim(salmon_0.05) == dim(bambu_0.05[-1])
+dim(salmon_0.1) == dim(bambu_0.1[-1])
+dim(salmon_0.2) == dim(bambu_0.2[-1])
+```
+
+## Data proprocessing
+
+### Save control sequnces
+
+```{r}
+patterns_to_remove <- c("ENST", "Bambu")
+
+# Bambu 0.025
+bambu_0.025_ctrl <-
+  bambu_0.025[!grepl(paste(patterns_to_remove, collapse = "|"),
+                     rownames(bambu_0.025)),]
+
+# Bambu 0.05
+bambu_0.05_ctrl <-
+  bambu_0.05[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(bambu_0.05)),]
+
+# Bambu 0.1
+bambu_0.1_ctrl <-
+  bambu_0.1[!grepl(paste(patterns_to_remove, collapse = "|"),
+                   rownames(bambu_0.1)),]
+
+# Bambu 0.2
+bambu_0.2_ctrl <-
+  bambu_0.2[!grepl(paste(patterns_to_remove, collapse = "|"),
+                   rownames(bambu_0.2)),]
+
+# Salmon 0.025
+salmon_0.025_ctrl <-
+  salmon_0.025[!grepl(paste(patterns_to_remove, collapse = "|"),
+                      rownames(salmon_0.025)),]
+
+# Salmon 0.05
+salmon_0.05_ctrl <-
+  salmon_0.05[!grepl(paste(patterns_to_remove, collapse = "|"),
+                     rownames(salmon_0.05)),]
+
+# Salmon 0.1
+salmon_0.1_ctrl <-
+  salmon_0.1[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(salmon_0.1)),]
+
+# Salmon 0.2
+salmon_0.2_ctrl <-
+  salmon_0.2[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(salmon_0.2)),]
+```
+
+### Remove control sequences
+
+```{r}
+patterns_to_remove <- c("^DQ", "^EF", "^SIRV")
+
+# Bambu 0.025
+bambu_0.025 <-
+  bambu_0.025[!grepl(paste(patterns_to_remove, collapse = "|"),
+                     rownames(bambu_0.025)),]
+
+# Bambu 0.05
+bambu_0.05 <-
+  bambu_0.05[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(bambu_0.05)),]
+
+# Bambu 0.1
+bambu_0.1 <-
+  bambu_0.1[!grepl(paste(patterns_to_remove, collapse = "|"),
+                   rownames(bambu_0.1)),]
+
+# Bambu 0.2
+bambu_0.2 <-
+  bambu_0.2[!grepl(paste(patterns_to_remove, collapse = "|"),
+                   rownames(bambu_0.2)),]
+
+# Salmon 0.025
+salmon_0.025 <-
+  salmon_0.025[!grepl(paste(patterns_to_remove, collapse = "|"),
+                      rownames(salmon_0.025)),]
+
+# Salmon 0.05
+salmon_0.05 <-
+  salmon_0.05[!grepl(paste(patterns_to_remove, collapse = "|"),
+                     rownames(salmon_0.05)),]
+
+# Salmon 0.1
+salmon_0.1 <-
+  salmon_0.1[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(salmon_0.1)),]
+
+# Salmon 0.2
+salmon_0.2 <-
+  salmon_0.2[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(salmon_0.2)),]
+```
+
+```{r}
+dim(salmon_0.025) == dim(bambu_0.025[-1])
+dim(salmon_0.05) == dim(bambu_0.05[-1])
+dim(salmon_0.1) == dim(bambu_0.1[-1])
+dim(salmon_0.2) == dim(bambu_0.2[-1])
+```
+
+### Sort data frames
+
+```{r}
+# 0.025
+bambu_0.025 <- bambu_0.025 %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+salmon_0.025 <- salmon_0.025 %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+# 0.05
+bambu_0.05 <- bambu_0.05 %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+salmon_0.05 <- salmon_0.05 %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+# 0.1
+bambu_0.1 <- bambu_0.1 %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+salmon_0.1 <- salmon_0.1 %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+# 0.2
+bambu_0.2 <- bambu_0.2 %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+salmon_0.2 <- salmon_0.2 %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+sum(rownames(salmon_0.025) != rownames(bambu_0.025))
+sum(rownames(salmon_0.05) != rownames(bambu_0.05))
+sum(rownames(salmon_0.1) != rownames(bambu_0.1))
+sum(rownames(salmon_0.2) != rownames(bambu_0.2))
+```
+
+### Create metadata
+
+```{r}
+# transcript meta data
+
+## 0.025
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.025_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0("data/", sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  print(quant)
+  EffectiveLength <- setNames(quant$EffectiveLength, quant$Name)
+  return(EffectiveLength)
+})
+
+metatranscript_0.025 <- as.data.frame(expr)[rownames(salmon_0.025),]
+
+## 0.05
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.05_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0("data/", sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  EffectiveLength <- setNames(quant$EffectiveLength, quant$Name)
+  return(EffectiveLength)
+})
+
+metatranscript_0.05 <- as.data.frame(expr)[rownames(salmon_0.05),]
+
+
+## 0.1
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.1_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0("data/", sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  EffectiveLength <- setNames(quant$EffectiveLength, quant$Name)
+  return(EffectiveLength)
+})
+
+metatranscript_0.1 <- as.data.frame(expr)[rownames(salmon_0.1),]
+
+## 0.2
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.2_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0("data/", sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  EffectiveLength <- setNames(quant$EffectiveLength, quant$Name)
+  return(EffectiveLength)
+})
+
+metatranscript_0.2 <- as.data.frame(expr)[rownames(salmon_0.2),]
+
+
+# gene meta data
+
+## 0.025
+metagenes_0.025 <- data.frame(gene_id = bambu_0.025$GENEID)
+rownames(metagenes_0.025) <- rownames(bambu_0.025)
+bambu_0.025 <- bambu_0.025[-1]
+
+## 0.05
+metagenes_0.05 <- data.frame(gene_id = bambu_0.05$GENEID)
+rownames(metagenes_0.05) <- rownames(bambu_0.05)
+bambu_0.05 <- bambu_0.05[-1]
+
+## 0.1
+metagenes_0.1 <- data.frame(gene_id = bambu_0.1$GENEID)
+rownames(metagenes_0.1) <- rownames(bambu_0.1)
+bambu_0.1 <- bambu_0.1[-1]
+
+## 0.2
+metagenes_0.2 <- data.frame(gene_id = bambu_0.2$GENEID)
+rownames(metagenes_0.2) <- rownames(bambu_0.2)
+bambu_0.2 <- bambu_0.2[-1]
+
+
+# sample meta data
+condition <-
+  unlist(strsplit(colnames(bambu_0.025), split = ".aligned.sorted"))
+
+metadata <-
+  data.frame(
+    sampleID = c(1:11),
+    condition = condition,
+    time = c(0, 0, 0, 1, 2, 3, 3, 4, 5, 5, 5)
+  )
+```
+
+### Sum up to gene level
+
+```{r}
+# Bambu 0.025
+bambu_0.025_gene <- bambu_0.025
+bambu_0.025_gene$gene_id <- metagenes_0.025$gene_id
+bambu_0.025_gene <- bambu_0.025_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Salmon 0.025
+salmon_0.025_gene <- salmon_0.025
+salmon_0.025_gene$gene_id <- metagenes_0.025$gene_id
+salmon_0.025_gene <- salmon_0.025_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Bambu 0.05
+bambu_0.05_gene <- bambu_0.05
+bambu_0.05_gene$gene_id <- metagenes_0.05$gene_id
+bambu_0.05_gene <- bambu_0.05_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Salmon 0.05
+salmon_0.05_gene <- salmon_0.05
+salmon_0.05_gene$gene_id <- metagenes_0.05$gene_id
+salmon_0.05_gene <- salmon_0.05_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Bambu 0.1
+bambu_0.1_gene <- bambu_0.1
+bambu_0.1_gene$gene_id <- metagenes_0.1$gene_id
+bambu_0.1_gene <- bambu_0.1_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Salmon 0.1
+salmon_0.1_gene <- salmon_0.1
+salmon_0.1_gene$gene_id <- metagenes_0.1$gene_id
+salmon_0.1_gene <- salmon_0.1_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Bambu 0.2
+bambu_0.2_gene <- bambu_0.2
+bambu_0.2_gene$gene_id <- metagenes_0.2$gene_id
+bambu_0.2_gene <- bambu_0.2_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Salmon 0.2
+salmon_0.2_gene <- salmon_0.2
+salmon_0.2_gene$gene_id <- metagenes_0.2$gene_id
+salmon_0.2_gene <- salmon_0.2_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+```
+
+```{r}
+dim(salmon_0.025_gene) == dim(bambu_0.025_gene)
+dim(salmon_0.05_gene) == dim(bambu_0.05_gene)
+dim(salmon_0.1_gene) == dim(bambu_0.1_gene)
+dim(salmon_0.2_gene) == dim(bambu_0.2_gene)
+```
+
