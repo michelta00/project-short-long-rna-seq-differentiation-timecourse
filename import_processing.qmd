@@ -1,6 +1,6 @@
 ---
-title: "Short vs. long RNA-seq (differentiation over timecourse)"
-author: "Michel Tarnow"
+title: "Data Import and Processing"
+author: "Marie, Anna, Michel"
 date: today
 format: 
     html:
@@ -20,34 +20,43 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
-library(RColorBrewer)
-library(edgeR)
-library(UpSetR)
 ```
 
 ## Load data as counts
 
 ```{r}
-# Long-read data (PacBio and Bambu)
+# specifiy path to data directory
+path_to_data <- "/Users/michel/Documents/stat_project/stat_rproject/data/"
+```
+
+
+```{r}
+# Long-read data (PacBio + Bambu)
 
 # 0.025
 bambu_0.025 <-
-  read.csv(file = "data/bambu_0.025/counts_transcript.txt", sep = "\t")
+  read.csv(
+    file = paste0(path_to_data, "bambu_0.025/counts_transcript.txt"),
+    sep = "\t")
 bambu_0.025 <- column_to_rownames(bambu_0.025, "TXNAME")
 
 # 0.05
 bambu_0.05 <-
-  read.csv(file = "data/bambu_0.05/counts_transcript.txt", sep = "\t")
+  read.csv(
+    file = paste0(path_to_data, "bambu_0.05/counts_transcript.txt"),
+    sep = "\t")
 bambu_0.05 <- column_to_rownames(bambu_0.05, "TXNAME")
 
 # 0.1
 bambu_0.1 <-
-  read.csv(file = "data/bambu_0.1/counts_transcript.txt", sep = "\t")
+  read.csv(file = paste0(path_to_data, "bambu_0.1/counts_transcript.txt"),
+           sep = "\t")
 bambu_0.1 <- column_to_rownames(bambu_0.1, "TXNAME")
 
 # 0.2
 bambu_0.2 <-
-  read.csv(file = "data/bambu_0.2/counts_transcript.txt", sep = "\t")
+  read.csv(file = paste0(path_to_data, "bambu_0.2/counts_transcript.txt"),
+           sep = "\t")
 bambu_0.2 <- column_to_rownames(bambu_0.2, "TXNAME")
 ```
 
@@ -55,13 +64,12 @@ bambu_0.2 <- column_to_rownames(bambu_0.2, "TXNAME")
 # Short-read data (Illumina and Salmon)
 
 ## 0.025
-samples <- list.files("data/") 
+samples <- list.files(path_to_data) 
 samples <- samples[grep(pattern = "0.025_salmon", x = samples)]
 
 expr <- sapply(samples, function(sample) {
-  file <- paste0("data/", sample, "/", "quant.sf")
+  file <- paste0(path_to_data, sample, "/", "quant.sf")
   quant <- read.csv(file, sep = "\t", header = T)
-  print(quant)
   NumReads <- setNames(quant$NumReads, quant$Name)
   return(NumReads)
 })
@@ -69,11 +77,11 @@ expr <- sapply(samples, function(sample) {
 salmon_0.025 <- as.data.frame(expr)
 
 ## 0.05
-samples <- list.files("data/") 
+samples <- list.files(path_to_data) 
 samples <- samples[grep(pattern = "0.05_salmon", x = samples)]
 
 expr <- sapply(samples, function(sample) {
-  file <- paste0("data/", sample, "/", "quant.sf")
+  file <- paste0(path_to_data, sample, "/", "quant.sf")
   quant <- read.csv(file, sep = "\t", header = T)
   NumReads <- setNames(quant$NumReads, quant$Name)
   return(NumReads)
@@ -82,11 +90,11 @@ expr <- sapply(samples, function(sample) {
 salmon_0.05 <- as.data.frame(expr)
 
 ## 0.1
-samples <- list.files("data/") 
+samples <- list.files(path_to_data) 
 samples <- samples[grep(pattern = "0.1_salmon", x = samples)]
 
 expr <- sapply(samples, function(sample) {
-  file <- paste0("data/", sample, "/", "quant.sf")
+  file <- paste0(path_to_data, sample, "/", "quant.sf")
   quant <- read.csv(file, sep = "\t", header = T)
   NumReads <- setNames(quant$NumReads, quant$Name)
   return(NumReads)
@@ -95,11 +103,11 @@ expr <- sapply(samples, function(sample) {
 salmon_0.1 <- as.data.frame(expr)
 
 ## 0.2
-samples <- list.files("data/") 
+samples <- list.files(path_to_data) 
 samples <- samples[grep(pattern = "0.2_salmon", x = samples)]
 
 expr <- sapply(samples, function(sample) {
-  file <- paste0("data/", sample, "/", "quant.sf")
+  file <- paste0(path_to_data, sample, "/", "quant.sf")
   quant <- read.csv(file, sep = "\t", header = T)
   NumReads <- setNames(quant$NumReads, quant$Name)
   return(NumReads)
@@ -438,4 +446,77 @@ dim(salmon_0.05_gene) == dim(bambu_0.05_gene)
 dim(salmon_0.1_gene) == dim(bambu_0.1_gene)
 dim(salmon_0.2_gene) == dim(bambu_0.2_gene)
 ```
+
+## Export data frames
+
+```{r}
+# Bambu data frames
+df_list_bambu <-
+  list(
+    bambu_0.025 = bambu_0.025,
+    bambu_0.025_ctrl = bambu_0.025_ctrl,
+    bambu_0.025_gene = bambu_0.025_gene,
+    bambu_0.05 = bambu_0.05,
+    bambu_0.05_ctrl = bambu_0.05_ctrl,
+    bambu_0.05_gene = bambu_0.05_gene,
+    bambu_0.1 = bambu_0.1,
+    bambu_0.1_ctrl = bambu_0.1_ctrl,
+    bambu_0.1_gene = bambu_0.1_gene,
+    bambu_0.2 = bambu_0.2,
+    bambu_0.2_ctrl = bambu_0.2_ctrl,
+    bambu_0.2_gene = bambu_0.2_gene
+  )
+
+# Salmon data frames
+df_list_salmon <-
+  list(
+    salmon_0.025 = salmon_0.025,
+    salmon_0.025_ctrl = salmon_0.025_ctrl,
+    salmon_0.025_gene = salmon_0.025_gene,
+    salmon_0.05 = salmon_0.05,
+    salmon_0.05_ctrl = salmon_0.05_ctrl,
+    salmon_0.05_gene = salmon_0.05_gene,
+    salmon_0.1 = salmon_0.1,
+    salmon_0.1_ctrl = salmon_0.1_ctrl,
+    salmon_0.2 = salmon_0.2,
+    salmon_0.2_ctrl = salmon_0.2_ctrl,
+    salmon_0.2_gene = salmon_0.2_gene
+  )
+
+# meta data frames
+df_list_meta <-
+  list(
+    metadata = metadata,
+    metagenes_0.025 = metagenes_0.025,
+    metagenes_0.05 = metagenes_0.05,
+    metagenes_0.1 = metagenes_0.1,
+    metagenes_0.2 = metagenes_0.2,
+    metatranscript_0.025 = metatranscript_0.025,
+    metatranscript_0.05 = metatranscript_0.05,
+    metatranscript_0.1 = metatranscript_0.1,
+    metatranscript_0.2 = metatranscript_0.2
+  )
+```
+
+```{r}
+# do not save in github directory!!!
+saveRDS(df_list_bambu, file = "../bambu.rds")
+saveRDS(df_list_meta, file = "../meta.rds")
+saveRDS(df_list_salmon, file = "../salmon.rds")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
