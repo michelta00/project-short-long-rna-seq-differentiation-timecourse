@@ -478,6 +478,7 @@ df_list_salmon <-
     salmon_0.05_gene = salmon_0.05_gene,
     salmon_0.1 = salmon_0.1,
     salmon_0.1_ctrl = salmon_0.1_ctrl,
+    salmon_0.1_gene = salmon_0.1_gene,
     salmon_0.2 = salmon_0.2,
     salmon_0.2_ctrl = salmon_0.2_ctrl,
     salmon_0.2_gene = salmon_0.2_gene
