@@ -29,7 +29,6 @@ library(tidyverse)
 path_to_data <- "/Users/michel/Documents/stat_project/stat_rproject/data/"
 ```
 
-
 ```{r}
 # Long-read data (PacBio + Bambu)
 

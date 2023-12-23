@@ -23,6 +23,11 @@ library(tidyverse)
 library(RColorBrewer)
 library(edgeR)
 library(UpSetR)
+library(viridis)
+library(pheatmap)
+library(gplots)
+library(fgsea)
+library(msigdbr)
 ```
 
 ## Load data
@@ -47,90 +52,7 @@ salmon_0.2_gene <- df_list_salmon$salmon_0.2_gene
 meta_samples <- df_list_meta$metadata
 ```
 
-## Filtering of expressed genes
-
-```{r}
-# filter expressed genes
-## threshold: genes must have an average expression > 0
-## filter only genes that are not expressed in both salmon and bambu
-
-# 0.025
-expressed_salmon <- rowMeans(salmon_0.025_gene) > 0
-expressed_bambu <- rowMeans(bambu_0.025_gene) > 0
-
-not_expressed <-
-  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
-
-if (length(not_expressed) > 0) {
-  salmon_0.025_gene_exp <-
-    salmon_0.025_gene[-which(rownames(salmon_0.025_gene) %in% not_expressed), ]
-  bambu_0.025_gene_exp <-
-    bambu_0.025_gene[-which(rownames(bambu_0.025_gene) %in% not_expressed), ]
-} else {
-  salmon_0.025_gene_exp <- salmon_0.025_gene
-  bambu_0.025_gene_exp <- bambu_0.025_gene
-}
-
-# 0.05
-expressed_salmon <- rowMeans(salmon_0.05_gene) > 0
-expressed_bambu <- rowMeans(bambu_0.05_gene) > 0
-
-not_expressed <-
-  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
-
-if (length(not_expressed) > 0) {
-  salmon_0.05_gene_exp <-
-    salmon_0.05_gene[-which(rownames(salmon_0.05_gene) %in% not_expressed), ]
-  bambu_0.05_gene_exp <-
-    bambu_0.05_gene[-which(rownames(bambu_0.05_gene) %in% not_expressed), ]
-} else {
-  salmon_0.05_gene_exp <- salmon_0.05_gene
-  bambu_0.05_gene_exp <- bambu_0.05_gene
-}
-
-# 0.1
-expressed_salmon <- rowMeans(salmon_0.1_gene) > 0
-expressed_bambu <- rowMeans(bambu_0.1_gene) > 0
-
-not_expressed <-
-  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
-
-if (length(not_expressed) > 0) {
-  salmon_0.1_gene_exp <-
-    salmon_0.1_gene[-which(rownames(salmon_0.1_gene) %in% not_expressed), ]
-  bambu_0.1_gene_exp <-
-    bambu_0.1_gene[-which(rownames(bambu_0.1_gene) %in% not_expressed), ]
-} else {
-  salmon_0.1_gene_exp <- salmon_0.1_gene
-  bambu_0.1_gene_exp <- bambu_0.1_gene
-}
-
-# 0.2
-expressed_salmon <- rowMeans(salmon_0.2_gene) > 0
-expressed_bambu <- rowMeans(bambu_0.2_gene) > 0
-
-not_expressed <-
-  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
-
-if (length(not_expressed) > 0) {
-  salmon_0.2_gene_exp <-
-    salmon_0.2_gene[-which(rownames(salmon_0.2_gene) %in% not_expressed), ]
-  bambu_0.2_gene_exp <-
-    bambu_0.2_gene[-which(rownames(bambu_0.2_gene) %in% not_expressed), ]
-} else {
-  salmon_0.2_gene_exp <- salmon_0.2_gene
-  bambu_0.2_gene_exp <- bambu_0.2_gene
-}
-```
-
-```{r}
-dim(salmon_0.025_gene_exp) == dim(bambu_0.025_gene_exp)
-dim(salmon_0.05_gene_exp) == dim(bambu_0.05_gene_exp)
-dim(salmon_0.1_gene_exp) == dim(bambu_0.1_gene_exp)
-dim(salmon_0.2_gene_exp) == dim(bambu_0.2_gene_exp)
-```
-
-## Differential expression analysis
+## Create DGEList objects and filter expressed genes
 
 ```{r}
 day <- factor(meta_samples$time)
@@ -139,214 +61,800 @@ day <- factor(meta_samples$time)
 ### 0.025
 
 ```{r}
+y_salmon_0.025 <- DGEList(counts = salmon_0.025_gene, group = day)
+y_bambu_0.025 <- DGEList(counts = bambu_0.025_gene, group = day)
+
+expressed_salmon <- filterByExpr(y_salmon_0.025)
+expressed_bambu <- filterByExpr(y_bambu_0.025)
+
+not_expressed <-
+  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
+
+if (length(not_expressed) > 0) {
+  y_salmon_0.025 <-
+    y_salmon_0.025[-which(rownames(salmon_0.025_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+  y_bambu_0.025 <-
+    y_bambu_0.025[-which(rownames(bambu_0.025_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+}
+```
+
+### 0.05
+
+```{r}
+y_salmon_0.05 <- DGEList(counts = salmon_0.05_gene, group = day)
+y_bambu_0.05 <- DGEList(counts = bambu_0.05_gene, group = day)
+
+expressed_salmon <- filterByExpr(y_salmon_0.05)
+expressed_bambu <- filterByExpr(y_bambu_0.05)
+
+not_expressed <-
+  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
+
+if (length(not_expressed) > 0) {
+  y_salmon_0.05 <-
+    y_salmon_0.05[-which(rownames(salmon_0.05_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+  y_bambu_0.05 <-
+    y_bambu_0.05[-which(rownames(bambu_0.05_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+}
+```
+
+### 0.1
+
+```{r}
+y_salmon_0.1 <- DGEList(counts = salmon_0.1_gene, group = day)
+y_bambu_0.1 <- DGEList(counts = bambu_0.1_gene, group = day)
+
+expressed_salmon <- filterByExpr(y_salmon_0.1)
+expressed_bambu <- filterByExpr(y_bambu_0.1)
+
+not_expressed <-
+  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
+
+if (length(not_expressed) > 0) {
+  y_salmon_0.1 <-
+    y_salmon_0.1[-which(rownames(salmon_0.1_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+  y_bambu_0.1 <-
+    y_bambu_0.1[-which(rownames(bambu_0.1_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+}
+```
+
+### 0.2
+
+```{r}
+y_salmon_0.2 <- DGEList(counts = salmon_0.2_gene, group = day)
+y_bambu_0.2 <- DGEList(counts = bambu_0.2_gene, group = day)
+
+expressed_salmon <- filterByExpr(y_salmon_0.2)
+expressed_bambu <- filterByExpr(y_bambu_0.2)
+
+not_expressed <-
+  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
+
+if (length(not_expressed) > 0) {
+  y_salmon_0.2 <-
+    y_salmon_0.2[-which(rownames(salmon_0.2_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+  y_bambu_0.2 <-
+    y_bambu_0.2[-which(rownames(bambu_0.2_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+}
+```
+
+```{r}
+dim(y_salmon_0.025) == dim(y_bambu_0.025)
+dim(y_salmon_0.05) == dim(y_bambu_0.05)
+dim(y_salmon_0.1) == dim(y_bambu_0.1)
+dim(y_salmon_0.2) == dim(y_bambu_0.2)
+```
+
+## Differential gene expression analysis
+
+```{r}
 # create design matrix
 design <- model.matrix( ~ day)
 design
+```
 
+### 0.025
+
+```{r}
 # Salmon 0.025
-y_salmon_0.025 <- DGEList(counts = salmon_0.025_gene_exp, group = day)
 y_salmon_0.025 <- calcNormFactors(y_salmon_0.025)
 ## estimate dispersion
 y_salmon_0.025 <- estimateDisp(y_salmon_0.025, design)
 ## fit the negative binomial model
 fit <- glmFit(y_salmon_0.025, design)
 ## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
-lrt_all <- glmLRT(fit, coef = 2:6)
-topTags(lrt_all)
+lrtS <- glmLRT(fit, coef = 2:6)
+#topTags(lrt)
 ## multiple testing correction
 decide_dif_s0.025 <-
-  decideTests.DGELRT(lrt_all,
+  decideTests.DGELRT(lrtS,
                      adjust.method = "BH",
-                     p.value = 0.05)
+                     p.value = 0.01)
 summary(decide_dif_s0.025)
 
 # Bambu 0.025
-y_bambu_0.025 <- DGEList(counts = bambu_0.025_gene_exp, group = day)
 y_bambu_0.025 <- calcNormFactors(y_bambu_0.025)
 ## estimate dispersion
 y_bambu_0.025 <- estimateDisp(y_bambu_0.025, design)
 ## fit the negative binomial model
 fit <- glmFit(y_bambu_0.025, design)
 ## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
-lrt_all <- glmLRT(fit, coef = 2:6)
-topTags(lrt_all)
+lrtB <- glmLRT(fit, coef = 2:6)
+#topTags(lrt)
 ## multiple testing correction
 decide_dif_b0.025 <-
-  decideTests.DGELRT(lrt_all,
+  decideTests.DGELRT(lrtB,
                      adjust.method = "BH",
-                     p.value = 0.05)
+                     p.value = 0.01)
 summary(decide_dif_b0.025)
 ```
 
 ```{r}
+# overlay results of both technologies
+
 de_genes_0.025 <- as.data.frame(cbind(decide_dif_s0.025, decide_dif_b0.025))
 colnames(de_genes_0.025) <- c("Salmon_0.025", "Bambu_0.025")
-
-# make UpSet plot
 upset(de_genes_0.025, sets = colnames(de_genes_0.025))
+```
+
+```{r}
+# comparison of padj and logfc
+
+padjS <- p.adjust(lrtS$table$PValue, method = "BH")
+padjB <- p.adjust(lrtB$table$PValue, method = "BH")
+padj <- data.frame(Salmon = padjS, Bambu = padjB)
+
+logfcS <- lrtS$table$logFC.day5
+logfcB <- lrtB$table$logFC.day5
+logfc <- data.frame(Salmon = logfcS, Bambu = logfcB)
+
+ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.025)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.025)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+```
+
+```{r}
+# time point comparison
+
+## Salmon
+fit <- glmFit(y_salmon_0.025, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_s0.025_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_s0.025_tp)
+
+ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_s0.025_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression Salmon 0.025 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+## Bambu
+fit <- glmFit(y_bambu_0.025, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_b0.025_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_b0.025_tp)
+
+ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_b0.025_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression Bambu 0.025 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ### 0.05
 
 ```{r}
-# create design matrix
-design <- model.matrix( ~ day)
-design
-
 # Salmon 0.05
-y_salmon_0.05 <- DGEList(counts = salmon_0.05_gene_exp, group = day)
 y_salmon_0.05 <- calcNormFactors(y_salmon_0.05)
 ## estimate dispersion
 y_salmon_0.05 <- estimateDisp(y_salmon_0.05, design)
 ## fit the negative binomial model
 fit <- glmFit(y_salmon_0.05, design)
 ## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
-lrt_all <- glmLRT(fit, coef = 2:6)
-topTags(lrt_all)
+lrtS <- glmLRT(fit, coef = 2:6)
+#topTags(lrt)
 ## multiple testing correction
 decide_dif_s0.05 <-
-  decideTests.DGELRT(lrt_all,
+  decideTests.DGELRT(lrtS,
                      adjust.method = "BH",
-                     p.value = 0.05)
+                     p.value = 0.01)
 summary(decide_dif_s0.05)
 
 # Bambu 0.05
-y_bambu_0.05 <- DGEList(counts = bambu_0.05_gene_exp, group = day)
 y_bambu_0.05 <- calcNormFactors(y_bambu_0.05)
 ## estimate dispersion
 y_bambu_0.05 <- estimateDisp(y_bambu_0.05, design)
 ## fit the negative binomial model
 fit <- glmFit(y_bambu_0.05, design)
 ## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
-lrt_all <- glmLRT(fit, coef = 2:6)
-topTags(lrt_all)
+lrtB <- glmLRT(fit, coef = 2:6)
+#topTags(lrt)
 ## multiple testing correction
 decide_dif_b0.05 <-
-  decideTests.DGELRT(lrt_all,
+  decideTests.DGELRT(lrtB,
                      adjust.method = "BH",
-                     p.value = 0.05)
+                     p.value = 0.01)
 summary(decide_dif_b0.05)
 ```
 
 ```{r}
+# overlay results of both technologies
+
 de_genes_0.05 <- as.data.frame(cbind(decide_dif_s0.05, decide_dif_b0.05))
 colnames(de_genes_0.05) <- c("Salmon_0.05", "Bambu_0.05")
-
-# make UpSet plot
 upset(de_genes_0.05, sets = colnames(de_genes_0.05))
+```
+
+```{r}
+# comparison of padj and logfc
+
+padjS <- p.adjust(lrtS$table$PValue, method = "BH")
+padjB <- p.adjust(lrtB$table$PValue, method = "BH")
+padj <- data.frame(Salmon = padjS, Bambu = padjB)
+
+logfcS <- lrtS$table$logFC.day5
+logfcB <- lrtB$table$logFC.day5
+logfc <- data.frame(Salmon = logfcS, Bambu = logfcB)
+
+ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.05)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.05)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+```
+
+```{r}
+# time point comparison
+
+## Salmon
+fit <- glmFit(y_salmon_0.05, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_s0.05_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_s0.05_tp)
+
+ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_s0.05_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression Salmon 0.05 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+## Bambu
+fit <- glmFit(y_bambu_0.05, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_b0.05_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_b0.05_tp)
+
+ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_b0.05_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression Bambu 0.05 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ### 0.1
 
 ```{r}
-# create design matrix
-design <- model.matrix( ~ day)
-design
-
 # Salmon 0.1
-y_salmon_0.1 <- DGEList(counts = salmon_0.1_gene_exp, group = day)
 y_salmon_0.1 <- calcNormFactors(y_salmon_0.1)
 ## estimate dispersion
 y_salmon_0.1 <- estimateDisp(y_salmon_0.1, design)
 ## fit the negative binomial model
 fit <- glmFit(y_salmon_0.1, design)
 ## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
-lrt_all <- glmLRT(fit, coef = 2:6)
-topTags(lrt_all)
+lrtS <- glmLRT(fit, coef = 2:6)
+#topTags(lrt)
 ## multiple testing correction
 decide_dif_s0.1 <-
-  decideTests.DGELRT(lrt_all,
+  decideTests.DGELRT(lrtS,
                      adjust.method = "BH",
-                     p.value = 0.05)
+                     p.value = 0.01)
 summary(decide_dif_s0.1)
 
 # Bambu 0.1
-y_bambu_0.1 <- DGEList(counts = bambu_0.1_gene_exp, group = day)
 y_bambu_0.1 <- calcNormFactors(y_bambu_0.1)
 ## estimate dispersion
 y_bambu_0.1 <- estimateDisp(y_bambu_0.1, design)
 ## fit the negative binomial model
 fit <- glmFit(y_bambu_0.1, design)
 ## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
-lrt_all <- glmLRT(fit, coef = 2:6)
-topTags(lrt_all)
+lrtB <- glmLRT(fit, coef = 2:6)
+#topTags(lrt)
 ## multiple testing correction
 decide_dif_b0.1 <-
-  decideTests.DGELRT(lrt_all,
+  decideTests.DGELRT(lrtB,
                      adjust.method = "BH",
-                     p.value = 0.05)
+                     p.value = 0.01)
 summary(decide_dif_b0.1)
 ```
 
 ```{r}
+# overlay results of both technologies
+
 de_genes_0.1 <- as.data.frame(cbind(decide_dif_s0.1, decide_dif_b0.1))
 colnames(de_genes_0.1) <- c("Salmon_0.1", "Bambu_0.1")
-
-# make UpSet plot
 upset(de_genes_0.1, sets = colnames(de_genes_0.1))
+```
+
+```{r}
+# comparison of padj and logfc
+
+padjS <- p.adjust(lrtS$table$PValue, method = "BH")
+padjB <- p.adjust(lrtB$table$PValue, method = "BH")
+padj <- data.frame(Salmon = padjS, Bambu = padjB)
+
+logfcS <- lrtS$table$logFC.day5
+logfcB <- lrtB$table$logFC.day5
+logfc <- data.frame(Salmon = logfcS, Bambu = logfcB)
+
+ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.1)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.1)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+```
+
+```{r}
+# time point comparison
+
+## Salmon
+fit <- glmFit(y_salmon_0.1, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_s0.1_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_s0.1_tp)
+
+ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_s0.1_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression Salmon 0.1 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+## Bambu
+fit <- glmFit(y_bambu_0.1, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_b0.1_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_b0.1_tp)
+
+ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_b0.1_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression Bambu 0.1 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ### 0.2
 
 ```{r}
-# create design matrix
-design <- model.matrix( ~ day)
-design
-
 # Salmon 0.2
-y_salmon_0.2 <- DGEList(counts = salmon_0.2_gene_exp, group = day)
 y_salmon_0.2 <- calcNormFactors(y_salmon_0.2)
 ## estimate dispersion
 y_salmon_0.2 <- estimateDisp(y_salmon_0.2, design)
 ## fit the negative binomial model
 fit <- glmFit(y_salmon_0.2, design)
 ## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
-lrt_all <- glmLRT(fit, coef = 2:6)
-topTags(lrt_all)
+lrtS <- glmLRT(fit, coef = 2:6)
+## save lrt for pathway analysis
+lrt_pathway <- lrtS
+#topTags(lrt)
 ## multiple testing correction
 decide_dif_s0.2 <-
-  decideTests.DGELRT(lrt_all,
+  decideTests.DGELRT(lrtS,
                      adjust.method = "BH",
-                     p.value = 0.05)
+                     p.value = 0.01)
 summary(decide_dif_s0.2)
 
 # Bambu 0.2
-y_bambu_0.2 <- DGEList(counts = bambu_0.2_gene_exp, group = day)
 y_bambu_0.2 <- calcNormFactors(y_bambu_0.2)
 ## estimate dispersion
 y_bambu_0.2 <- estimateDisp(y_bambu_0.2, design)
 ## fit the negative binomial model
 fit <- glmFit(y_bambu_0.2, design)
 ## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
-lrt_all <- glmLRT(fit, coef = 2:6)
-topTags(lrt_all)
+lrtB <- glmLRT(fit, coef = 2:6)
+#topTags(lrt)
 ## multiple testing correction
 decide_dif_b0.2 <-
-  decideTests.DGELRT(lrt_all,
+  decideTests.DGELRT(lrtB,
                      adjust.method = "BH",
-                     p.value = 0.05)
+                     p.value = 0.01)
 summary(decide_dif_b0.2)
 ```
 
 ```{r}
+# overlay results of both technologies
+
 de_genes_0.2 <- as.data.frame(cbind(decide_dif_s0.2, decide_dif_b0.2))
 colnames(de_genes_0.2) <- c("Salmon_0.2", "Bambu_0.2")
-
-# make UpSet plot
 upset(de_genes_0.2, sets = colnames(de_genes_0.2))
+```
+
+```{r}
+# comparison of padj and logfc
+
+padjS <- p.adjust(lrtS$table$PValue, method = "BH")
+padjB <- p.adjust(lrtB$table$PValue, method = "BH")
+padj <- data.frame(Salmon = padjS, Bambu = padjB)
+
+logfcS <- lrtS$table$logFC.day5
+logfcB <- lrtB$table$logFC.day5
+logfc <- data.frame(Salmon = logfcS, Bambu = logfcB)
+
+ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.2)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.2)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+```
+
+```{r}
+# time point comparison
+
+## Salmon
+fit <- glmFit(y_salmon_0.2, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_s0.2_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_s0.2_tp)
+
+ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_s0.2_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression Salmon 0.2 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+## Bambu
+fit <- glmFit(y_bambu_0.2, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_b0.2_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_b0.2_tp)
+
+ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_b0.2_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression Bambu 0.2 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ## Grouping of DE genes
 
 ```{r}
-# 0.025
-x <- which(de_genes_0.025$Salmon_0.025 == 1)
-y <- which(de_genes_0.025$Bambu_0.025 == 1)
-z <- intersect(x, y)
-deg_0.025 <- rownames(de_genes_0.025[z,])
+s <- which(de_genes_0.2$Salmon_0.2 == 1)
+b <- which(de_genes_0.2$Bambu_0.2 == 1)
+s_b <- intersect(s, b)
+DEG <- rownames(de_genes_0.2[s_b,])
+```
+
+```{r}
+avg_expr <- as.data.frame(sapply(sort(unique(meta_samples$time))[c(1,4,6)], function(time) {
+  rowMeans(salmon_0.2_gene[, which(meta_samples$time == time)])
+}))
+
+avg_expr$V4 <- unlist(as.vector(salmon_0.2_gene[, which(meta_samples$time == 1)]))
+avg_expr$V5 <- unlist(as.vector(salmon_0.2_gene[, which(meta_samples$time == 2)]))
+avg_expr$V6 <- unlist(as.vector(salmon_0.2_gene[, which(meta_samples$time == 4)]))
+
+avg_expr <- avg_expr[, c(1,4,5,2,6,3)]
+
+colnames(avg_expr) <- sort(unique(meta_samples$time))
+```
+
+```{r}
+corr_DEG <- cor(t(avg_expr[DEG,]), method = "spearman")
+hcl_DEG <- hclust(as.dist(1 - corr_DEG), method = "complete")
+plot(hcl_DEG, label = FALSE)
+```
+
+```{r}
+cl_DEG <- cutree(hcl_DEG, k = 4)
+heatmap.2(corr_DEG, Rowv = as.dendrogram(hcl_DEG), Colv = as.dendrogram(hcl_DEG),
+          trace = "none", scale = "none", labRow = NA, labCol = NA, col = viridis,
+          ColSideColors = rainbow(15)[cl_DEG])
+```
+
+```{r}
+avg_expr_DEG_list <- tapply(names(cl_DEG), cl_DEG, function(x) avg_expr[x,])
+scaled_expr_DEG_list <- lapply(avg_expr_DEG_list, function(x) t(scale(t(x))))
+
+layout(matrix(1:4, nrow = 2, byrow = T))
+for(cl in 1:4)
+  boxplot(scaled_expr_DEG_list[[cl]],
+          main = paste0(cl, " (", nrow(scaled_expr_DEG_list[[cl]]), ")"))
 ```
 
 ## Function/Pathway analysis
+
+### DAVID (frequency-based)
+
+```{r}
+get_ensemble_id <- function(input_string) {
+  ensemble_id_version <- unlist(strsplit(input_string, "\\."))
+  return(ensemble_id_version[1])
+}
+input <- names(which(cl_DEG == 1))
+names_cluster1 <- unname(sapply(input, get_ensemble_id))
+
+input <- names(which(cl_DEG == 2))
+names_cluster2 <- unname(sapply(input, get_ensemble_id))
+
+input <- names(which(cl_DEG == 3))
+names_cluster3 <- unname(sapply(input, get_ensemble_id))
+
+input <- names(which(cl_DEG == 4))
+names_cluster4 <- unname(sapply(input, get_ensemble_id))
+
+input <- rownames(y_salmon_0.025)
+background <- unname(sapply(input, get_ensemble_id))
+```
+
+```{r}
+write.table(
+  names_cluster1[-which(startsWith(names_cluster1, "Bambu"))],
+  file = "../genes_C1.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+write.table(
+  names_cluster2,
+  file = "../genes_C2.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+write.table(
+  names_cluster3,
+  file = "../genes_C3.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+write.table(
+  names_cluster4,
+  file = "../genes_C4.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+write.table(
+  background[-which(startsWith(background, "Bambu"))],
+  file = "../genes_expressed.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+```
+
+### GSEA (ranked-based)
+
+```{r}
+top_genes <- topTags(lrt_pathway, n = nrow(y_salmon_0.2))
+padj <- p.adjust(p = top_genes$table$PValue, method = "BH")
+ranked_list_names <- unname(sapply(rownames(top_genes), get_ensemble_id))
+
+ranked_list <- padj
+names(ranked_list) <- ranked_list_names
+```
+
+```{r}
+genesets <- msigdbr(species = "Homo sapiens", category = "C8")
+genesets_list <- tapply(genesets$ensembl_gene, genesets$gs_name, list)
+
+fgsea_kegg <- fgsea(
+  pathways = genesets_list,
+  stats = ranked_list,
+  scoreType = "pos",
+  minSize  = 15,
+  maxSize  = 500
+)
+
+fgsea_kegg[order(NES, decreasing = T), ][1:10, 1:7]
+```
+
 
 
 
