@@ -1,0 +1,227 @@
+---
+title: "Comparison PacBio vs. Illumina"
+author: "Marie-Claire Indilewitsch"
+date: today
+format: 
+    html:
+      toc: true
+      self-contained: true
+      highlight-style: github
+      code-line-numbers: true
+editor_options: 
+    chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(RColorBrewer)
+library(edgeR)
+library(UpSetR)
+library(viridis)
+library(pheatmap)
+library(gplots)
+
+```
+
+## Load data
+
+```{r}
+df_list_bambu <- readRDS("bambu.rds")
+df_list_salmon <- readRDS("salmon.rds")
+df_list_meta <- readRDS("meta.rds")
+```
+
+```{r}
+bambu_0.025 <- df_list_bambu$bambu_0.025
+bambu_0.05 <- df_list_bambu$bambu_0.05
+bambu_0.1 <- df_list_bambu$bambu_0.1
+bambu_0.2 <- df_list_bambu$bambu_0.2
+
+salmon_0.025 <- df_list_salmon$salmon_0.025
+salmon_0.05 <- df_list_salmon$salmon_0.05
+salmon_0.1 <- df_list_salmon$salmon_0.1
+salmon_0.2 <- df_list_salmon$salmon_0.2
+
+bambu_0.025_gene <- df_list_bambu$bambu_0.025_gene
+bambu_0.05_gene <- df_list_bambu$bambu_0.05_gene
+bambu_0.1_gene <- df_list_bambu$bambu_0.1_gene
+bambu_0.2_gene <- df_list_bambu$bambu_0.2_gene
+
+salmon_0.025_gene <- df_list_salmon$salmon_0.025_gene
+salmon_0.05_gene <- df_list_salmon$salmon_0.05_gene
+salmon_0.1_gene <- df_list_salmon$salmon_0.1_gene
+salmon_0.2_gene <- df_list_salmon$salmon_0.2_gene
+
+meta_samples <- df_list_meta$metadata
+```
+
+## Differences 
+
+```{r}
+
+
+difference1 <- salmon_0.025 - bambu_0.025
+nrow(salmon_0.025[which(rowSums(abs(difference1)) < 60), ])/nrow(salmon_0.025)
+
+difference2 <- salmon_0.05- bambu_0.05
+nrow(salmon_0.05[which(rowSums(abs(difference2)) < 60), ])/nrow(salmon_0.05)
+
+difference3 <- salmon_0.1 - bambu_0.1
+nrow(salmon_0.1[which(rowSums(abs(difference3)) < 60), ])/nrow(salmon_0.1)
+
+difference4 <- salmon_0.2 - bambu_0.2
+nrow(salmon_0.2[which(rowSums(abs(difference4)) < 60), ])/nrow(salmon_0.2)
+
+difference1_gene <- salmon_0.025_gene- bambu_0.025_gene
+nrow(salmon_0.025_gene[which(rowSums(abs(difference1_gene)) < 60), ])/nrow(salmon_0.025_gene)
+
+difference2_gene <- salmon_0.05_gene- bambu_0.05_gene
+nrow(salmon_0.05_gene[which(rowSums(abs(difference2_gene)) < 60), ])/nrow(salmon_0.05_gene)
+
+difference3_gene <- salmon_0.1_gene - bambu_0.1_gene
+nrow(salmon_0.1_gene[which(rowSums(abs(difference3_gene)) < 60), ])/nrow(salmon_0.1_gene)
+
+difference4_gene <- salmon_0.2_gene - bambu_0.2_gene
+nrow(salmon_0.2_gene[which(rowSums(abs(difference4_gene)) < 60), ])/nrow(salmon_0.2_gene)
+```
+
+```{r}
+#Histograms of differences 
+ggplot(difference1, aes(x = difference1[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)
+
+ggplot(difference2, aes(x = difference2[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)
+
+ggplot(difference3, aes(x = difference3[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)
+
+ggplot(difference4, aes(x = difference4[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)
+
+ggplot(difference1_gene, aes(x = difference1_gene[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)
+
+ggplot(difference2_gene, aes(x = difference2_gene[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)
+
+ggplot(difference3_gene, aes(x = difference3_gene[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)
+
+ggplot(difference4_gene, aes(x = difference4_gene[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)
+
+
+```
+
+```{r}
+## get length and filter by it 
+samples <- list.files("data/") 
+samples <- samples[grep(pattern = "0.025_salmon", x = samples)]
+
+
+file <- paste0("data/", samples[1], "/", "quant.sf")
+quant <- read.csv(file, sep = "\t", header = T)
+length <- quant$Length
+
+#distribution of lengths 
+ggplot(quant, aes(x = Length)) +
+  geom_histogram(binwidth = 100, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(0,10000)
+
+quant_below_1000 <- quant[quant$Length < 1000, ]
+quant_1000_2000 <- quant[quant$Length >= 1000 & quant$Length < 2000, ]
+quant_2000_3000 <- quant[quant$Length >= 2000 & quant$Length < 3000, ]
+quant_3000_4000 <- quant[quant$Length >= 3000 & quant$Length < 4000, ]
+quant_4000_5000 <- quant[quant$Length >= 4000 & quant$Length < 5000, ]
+quant_5000_6000 <- quant[quant$Length >= 5000 & quant$Length < 6000, ]
+quant_6000_7000 <- quant[quant$Length >= 6000 & quant$Length < 7000, ]
+quant_7000_8000 <- quant[quant$Length >= 7000 & quant$Length < 8000, ]
+quant_8000_9000 <- quant[quant$Length >= 8000 & quant$Length < 9000, ]
+quant_9000_10000 <- quant[quant$Length >= 9000 & quant$Length < 10000, ]
+```
+```{r}
+bambu_0.025_below_1000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_below_1000$Name)
+salmon_0.025_below_1000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_below_1000$Name)
+
+bambu_0.025_1000_2000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_1000_2000$Name)
+salmon_0.025_1000_2000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_1000_2000$Name)
+
+bambu_0.025_2000_3000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_2000_3000$Name)
+salmon_0.025_2000_3000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_2000_3000$Name)
+
+bambu_0.025_3000_4000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_3000_4000$Name)
+salmon_0.025_3000_4000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_3000_4000$Name)
+
+bambu_0.025_4000_5000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_4000_5000$Name)
+salmon_0.025_4000_5000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_4000_5000$Name)
+
+bambu_0.025_5000_6000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_5000_6000$Name)
+salmon_0.025_5000_6000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_5000_6000$Name)
+
+bambu_0.025_6000_7000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_6000_7000$Name)
+salmon_0.025_6000_7000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_6000_7000$Name)
+
+bambu_0.025_7000_8000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_7000_8000$Name)
+salmon_0.025_7000_8000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_7000_8000$Name)
+
+bambu_0.025_8000_9000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_8000_9000$Name)
+salmon_0.025_8000_9000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_8000_9000$Name)
+
+bambu_0.025_9000_10000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_9000_10000$Name)
+salmon_0.025_9000_10000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_9000_10000$Name)
+
+
+
+
+cor_0.025_below_1000 <- cor(bambu_0.025_below_1000, salmon_0.025_below_1000)
+cor_0.025_1000_2000 <- cor(bambu_0.025_1000_2000, salmon_0.025_1000_2000)
+cor_0.025_2000_3000 <- cor(bambu_0.025_2000_3000, salmon_0.025_2000_3000)
+cor_0.025_3000_4000 <- cor(bambu_0.025_3000_4000, salmon_0.025_3000_4000)
+cor_0.025_4000_5000 <- cor(bambu_0.025_4000_5000, salmon_0.025_4000_5000)
+
+cor_0.025_5000_6000 <- cor(bambu_0.025_5000_6000, salmon_0.025_5000_6000)
+cor_0.025_6000_7000 <- cor(bambu_0.025_6000_7000, salmon_0.025_6000_7000)
+cor_0.025_7000_8000 <- cor(bambu_0.025_7000_8000, salmon_0.025_7000_8000)
+cor_0.025_8000_9000 <- cor(bambu_0.025_8000_9000, salmon_0.025_8000_9000)
+cor_0.025_9000_10000 <- cor(bambu_0.025_9000_10000, salmon_0.025_9000_10000)
+#cor_0.05 <- cor(bambu_0.05, salmon_0.05)
+#cor_0.1 <- cor(bambu_0.1, salmon_0.1)
+#cor_0.2 <- cor(bambu_0.2, salmon_0.2)
+
+#cor_0.025_gene <- cor(bambu_0.025_gene, salmon_0.025_gene)
+#cor_0.05_gene <- cor(bambu_0.05_gene, salmon_0.05_gene)
+#cor_0.1_gene <- cor(bambu_0.1_gene, salmon_0.1_gene)
+#cor_0.2_gene <- cor(bambu_0.2_gene, salmon_0.2_gene)
+```
+
+```{r}
+library(pheatmap)
+
+pheatmap(cor_0.025_below_1000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_1000_2000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_2000_3000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_3000_4000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_4000_5000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_5000_6000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_6000_7000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_7000_8000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_8000_9000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_9000_10000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.05)#pheatmap(cor_0.01)
+
+```
