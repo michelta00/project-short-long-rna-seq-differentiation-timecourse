@@ -20,6 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
+library(edgeR)
 ```
 
 ## Load data as counts
@@ -122,9 +123,92 @@ dim(salmon_0.1) == dim(bambu_0.1[-1])
 dim(salmon_0.2) == dim(bambu_0.2[-1])
 ```
 
+## Load data as TPM (Salmon) / Transform count to TPM (Bambu)
+
+```{r}
+# Long-read data (PacBio + Bambu)
+
+# 0.025
+bambu_0.025_tpm <- as.data.frame(cpm(bambu_0.025[-1]))
+
+# 0.05
+bambu_0.05_tpm <- as.data.frame(cpm(bambu_0.05[-1]))
+
+# 0.1
+bambu_0.1_tpm <- as.data.frame(cpm(bambu_0.1[-1]))
+
+# 0.2
+bambu_0.2_tpm <- as.data.frame(cpm(bambu_0.2[-1]))
+```
+
+```{r}
+# Short-read data (Illumina and Salmon)
+
+## 0.025
+samples <- list.files(path_to_data) 
+samples <- samples[grep(pattern = "0.025_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0(path_to_data, sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  TPM <- setNames(quant$TPM, quant$Name)
+  return(TPM)
+})
+
+salmon_0.025_tpm <- as.data.frame(expr)
+
+## 0.05
+samples <- list.files(path_to_data) 
+samples <- samples[grep(pattern = "0.05_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0(path_to_data, sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  TPM <- setNames(quant$TPM, quant$Name)
+  return(TPM)
+})
+
+salmon_0.05_tpm <- as.data.frame(expr)
+
+## 0.1
+samples <- list.files(path_to_data) 
+samples <- samples[grep(pattern = "0.1_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0(path_to_data, sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  TPM <- setNames(quant$TPM, quant$Name)
+  return(TPM)
+})
+
+salmon_0.1_tpm <- as.data.frame(expr)
+
+## 0.2
+samples <- list.files(path_to_data) 
+samples <- samples[grep(pattern = "0.2_salmon", x = samples)]
+
+expr <- sapply(samples, function(sample) {
+  file <- paste0(path_to_data, sample, "/", "quant.sf")
+  quant <- read.csv(file, sep = "\t", header = T)
+  TPM <- setNames(quant$TPM, quant$Name)
+  return(TPM)
+})
+
+salmon_0.2_tpm <- as.data.frame(expr)
+```
+
+```{r}
+dim(salmon_0.025_tpm) == dim(bambu_0.025_tpm)
+dim(salmon_0.05_tpm) == dim(bambu_0.05_tpm)
+dim(salmon_0.1_tpm) == dim(bambu_0.1_tpm)
+dim(salmon_0.2_tpm) == dim(bambu_0.2_tpm)
+```
+
 ## Data proprocessing
 
 ### Save control sequnces
+
+#### Counts
 
 ```{r}
 patterns_to_remove <- c("ENST", "Bambu")
@@ -170,7 +254,53 @@ salmon_0.2_ctrl <-
                     rownames(salmon_0.2)),]
 ```
 
+#### TPM
+
+```{r}
+# Bambu 0.025
+bambu_0.025_tpm_ctrl <-
+  bambu_0.025_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                     rownames(bambu_0.025_tpm)),]
+
+# Bambu 0.05
+bambu_0.05_tpm_ctrl <-
+  bambu_0.05_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(bambu_0.05_tpm)),]
+
+# Bambu 0.1
+bambu_0.1_tpm_ctrl <-
+  bambu_0.1_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                   rownames(bambu_0.1_tpm)),]
+
+# Bambu 0.2
+bambu_0.2_tpm_ctrl <-
+  bambu_0.2_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                   rownames(bambu_0.2_tpm)),]
+
+# Salmon 0.025
+salmon_0.025_tpm_ctrl <-
+  salmon_0.025_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                      rownames(salmon_0.025_tpm)),]
+
+# Salmon 0.05
+salmon_0.05_tpm_ctrl <-
+  salmon_0.05_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                     rownames(salmon_0.05_tpm)),]
+
+# Salmon 0.1
+salmon_0.1_tpm_ctrl <-
+  salmon_0.1_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(salmon_0.1_tpm)),]
+
+# Salmon 0.2
+salmon_0.2_tpm_ctrl <-
+  salmon_0.2_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(salmon_0.2_tpm)),]
+```
+
 ### Remove control sequences
+
+#### Counts
 
 ```{r}
 patterns_to_remove <- c("^DQ", "^EF", "^SIRV")
@@ -223,7 +353,60 @@ dim(salmon_0.1) == dim(bambu_0.1[-1])
 dim(salmon_0.2) == dim(bambu_0.2[-1])
 ```
 
+#### TPM
+
+```{r}
+# Bambu 0.025
+bambu_0.025_tpm <-
+  bambu_0.025_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                     rownames(bambu_0.025_tpm)),]
+
+# Bambu 0.05
+bambu_0.05_tpm <-
+  bambu_0.05_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(bambu_0.05_tpm)),]
+
+# Bambu 0.1
+bambu_0.1_tpm <-
+  bambu_0.1_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                   rownames(bambu_0.1_tpm)),]
+
+# Bambu 0.2
+bambu_0.2_tpm <-
+  bambu_0.2_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                   rownames(bambu_0.2_tpm)),]
+
+# Salmon 0.025
+salmon_0.025_tpm <-
+  salmon_0.025_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                      rownames(salmon_0.025_tpm)),]
+
+# Salmon 0.05
+salmon_0.05_tpm <-
+  salmon_0.05_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                     rownames(salmon_0.05_tpm)),]
+
+# Salmon 0.1
+salmon_0.1_tpm <-
+  salmon_0.1_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(salmon_0.1_tpm)),]
+
+# Salmon 0.2
+salmon_0.2_tpm <-
+  salmon_0.2_tpm[!grepl(paste(patterns_to_remove, collapse = "|"),
+                    rownames(salmon_0.2_tpm)),]
+```
+
+```{r}
+dim(salmon_0.025_tpm) == dim(bambu_0.025_tpm)
+dim(salmon_0.05_tpm) == dim(bambu_0.05_tpm)
+dim(salmon_0.1_tpm) == dim(bambu_0.1_tpm)
+dim(salmon_0.2_tpm) == dim(bambu_0.2_tpm)
+```
+
 ### Sort data frames
+
+#### Counts
 
 ```{r}
 # 0.025
@@ -274,6 +457,59 @@ sum(rownames(salmon_0.025) != rownames(bambu_0.025))
 sum(rownames(salmon_0.05) != rownames(bambu_0.05))
 sum(rownames(salmon_0.1) != rownames(bambu_0.1))
 sum(rownames(salmon_0.2) != rownames(bambu_0.2))
+```
+
+#### TPM
+
+```{r}
+# 0.025
+bambu_0.025_tpm <- bambu_0.025_tpm %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+salmon_0.025_tpm <- salmon_0.025_tpm %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+# 0.05
+bambu_0.05_tpm <- bambu_0.05_tpm %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+salmon_0.05_tpm <- salmon_0.05_tpm %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+# 0.1
+bambu_0.1_tpm <- bambu_0.1_tpm %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+salmon_0.1_tpm <- salmon_0.1_tpm %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+# 0.2
+bambu_0.2_tpm <- bambu_0.2_tpm %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+salmon_0.2_tpm <- salmon_0.2_tpm %>%
+  rownames_to_column(var = "tx_id") %>%
+  arrange(tx_id) %>%
+  column_to_rownames(var = "tx_id")
+
+sum(rownames(salmon_0.025_tpm) != rownames(bambu_0.025_tpm))
+sum(rownames(salmon_0.05_tpm) != rownames(bambu_0.05_tpm))
+sum(rownames(salmon_0.1_tpm) != rownames(bambu_0.1_tpm))
+sum(rownames(salmon_0.2_tpm) != rownames(bambu_0.2_tpm))
 ```
 
 ### Create metadata
@@ -373,6 +609,8 @@ metadata <-
 
 ### Sum up to gene level
 
+#### Counts
+
 ```{r}
 # Bambu 0.025
 bambu_0.025_gene <- bambu_0.025
@@ -446,6 +684,81 @@ dim(salmon_0.1_gene) == dim(bambu_0.1_gene)
 dim(salmon_0.2_gene) == dim(bambu_0.2_gene)
 ```
 
+#### TPM
+
+```{r}
+# Bambu 0.025
+bambu_0.025_tpm_gene <- bambu_0.025_tpm
+bambu_0.025_tpm_gene$gene_id <- metagenes_0.025$gene_id
+bambu_0.025_tpm_gene <- bambu_0.025_tpm_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Salmon 0.025
+salmon_0.025_tpm_gene <- salmon_0.025_tpm
+salmon_0.025_tpm_gene$gene_id <- metagenes_0.025$gene_id
+salmon_0.025_tpm_gene <- salmon_0.025_tpm_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Bambu 0.05
+bambu_0.05_tpm_gene <- bambu_0.05_tpm
+bambu_0.05_tpm_gene$gene_id <- metagenes_0.05$gene_id
+bambu_0.05_tpm_gene <- bambu_0.05_tpm_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Salmon 0.05
+salmon_0.05_tpm_gene <- salmon_0.05_tpm
+salmon_0.05_tpm_gene$gene_id <- metagenes_0.05$gene_id
+salmon_0.05_tpm_gene <- salmon_0.05_tpm_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Bambu 0.1
+bambu_0.1_tpm_gene <- bambu_0.1_tpm
+bambu_0.1_tpm_gene$gene_id <- metagenes_0.1$gene_id
+bambu_0.1_tpm_gene <- bambu_0.1_tpm_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Salmon 0.1
+salmon_0.1_tpm_gene <- salmon_0.1_tpm
+salmon_0.1_tpm_gene$gene_id <- metagenes_0.1$gene_id
+salmon_0.1_tpm_gene <- salmon_0.1_tpm_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Bambu 0.2
+bambu_0.2_tpm_gene <- bambu_0.2_tpm
+bambu_0.2_tpm_gene$gene_id <- metagenes_0.2$gene_id
+bambu_0.2_tpm_gene <- bambu_0.2_tpm_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+
+# Salmon 0.2
+salmon_0.2_tpm_gene <- salmon_0.2_tpm
+salmon_0.2_tpm_gene$gene_id <- metagenes_0.2$gene_id
+salmon_0.2_tpm_gene <- salmon_0.2_tpm_gene %>%
+  group_by(gene_id) %>%
+  summarise(across(everything(), sum)) %>%
+  column_to_rownames("gene_id")
+```
+
+```{r}
+dim(salmon_0.025_tpm_gene) == dim(bambu_0.025_tpm_gene)
+dim(salmon_0.05_tpm_gene) == dim(bambu_0.05_tpm_gene)
+dim(salmon_0.1_tpm_gene) == dim(bambu_0.1_tpm_gene)
+dim(salmon_0.2_tpm_gene) == dim(bambu_0.2_tpm_gene)
+```
+
 ## Export data frames
 
 ```{r}
@@ -455,15 +768,27 @@ df_list_bambu <-
     bambu_0.025 = bambu_0.025,
     bambu_0.025_ctrl = bambu_0.025_ctrl,
     bambu_0.025_gene = bambu_0.025_gene,
+    bambu_0.025_tpm = bambu_0.025_tpm,
+    bambu_0.025_tpm_ctrl = bambu_0.025_tpm_ctrl,
+    bambu_0.025_tpm_gene = bambu_0.025_tpm_gene,
     bambu_0.05 = bambu_0.05,
     bambu_0.05_ctrl = bambu_0.05_ctrl,
     bambu_0.05_gene = bambu_0.05_gene,
+    bambu_0.05_tpm = bambu_0.05_tpm,
+    bambu_0.05_tpm_ctrl = bambu_0.05_tpm_ctrl,
+    bambu_0.05_tpm_gene = bambu_0.05_tpm_gene,
     bambu_0.1 = bambu_0.1,
     bambu_0.1_ctrl = bambu_0.1_ctrl,
     bambu_0.1_gene = bambu_0.1_gene,
+    bambu_0.1_tpm = bambu_0.1_tpm,
+    bambu_0.1_tpm_ctrl = bambu_0.1_tpm_ctrl,
+    bambu_0.1_tpm_gene = bambu_0.1_tpm_gene,
     bambu_0.2 = bambu_0.2,
     bambu_0.2_ctrl = bambu_0.2_ctrl,
-    bambu_0.2_gene = bambu_0.2_gene
+    bambu_0.2_gene = bambu_0.2_gene,
+    bambu_0.2_tpm = bambu_0.2_tpm,
+    bambu_0.2_tpm_ctrl = bambu_0.2_tpm_ctrl,
+    bambu_0.2_tpm_gene = bambu_0.2_tpm_gene
   )
 
 # Salmon data frames
@@ -472,15 +797,27 @@ df_list_salmon <-
     salmon_0.025 = salmon_0.025,
     salmon_0.025_ctrl = salmon_0.025_ctrl,
     salmon_0.025_gene = salmon_0.025_gene,
+    salmon_0.025_tpm = salmon_0.025_tpm,
+    salmon_0.025_tpm_ctrl = salmon_0.025_tpm_ctrl,
+    salmon_0.025_tpm_gene = salmon_0.025_tpm_gene,
     salmon_0.05 = salmon_0.05,
     salmon_0.05_ctrl = salmon_0.05_ctrl,
     salmon_0.05_gene = salmon_0.05_gene,
+    salmon_0.05_tpm = salmon_0.05_tpm,
+    salmon_0.05_tpm_ctrl = salmon_0.05_tpm_ctrl,
+    salmon_0.05_tpm_gene = salmon_0.05_tpm_gene,
     salmon_0.1 = salmon_0.1,
     salmon_0.1_ctrl = salmon_0.1_ctrl,
     salmon_0.1_gene = salmon_0.1_gene,
+    salmon_0.1_tpm = salmon_0.1_tpm,
+    salmon_0.1_tpm_ctrl = salmon_0.1_tpm_ctrl,
+    salmon_0.1_tpm_gene = salmon_0.1_tpm_gene,
     salmon_0.2 = salmon_0.2,
     salmon_0.2_ctrl = salmon_0.2_ctrl,
-    salmon_0.2_gene = salmon_0.2_gene
+    salmon_0.2_gene = salmon_0.2_gene,
+    salmon_0.2_tpm = salmon_0.2_tpm,
+    salmon_0.2_tpm_ctrl = salmon_0.2_tpm_ctrl,
+    salmon_0.2_tpm_gene = salmon_0.2_tpm_gene
   )
 
 # meta data frames

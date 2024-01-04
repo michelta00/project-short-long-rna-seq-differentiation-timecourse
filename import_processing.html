@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Marie, Anna, Michel">
-<meta name="dcterms.date" content="2023-12-19">
+<meta name="dcterms.date" content="2024-01-04">
 
 <title>Data Import and Processing</title>
 <style>
@@ -3027,6 +3027,7 @@ vertical-align: -.125em;
   <ul>
   <li><a href="#load-packages" id="toc-load-packages" class="nav-link active" data-scroll-target="#load-packages">Load packages</a></li>
   <li><a href="#load-data-as-counts" id="toc-load-data-as-counts" class="nav-link" data-scroll-target="#load-data-as-counts">Load data as counts</a></li>
+  <li><a href="#load-data-as-tpm-salmon-transform-count-to-tpm-bambu" id="toc-load-data-as-tpm-salmon-transform-count-to-tpm-bambu" class="nav-link" data-scroll-target="#load-data-as-tpm-salmon-transform-count-to-tpm-bambu">Load data as TPM (Salmon) / Transform count to TPM (Bambu)</a></li>
   <li><a href="#data-proprocessing" id="toc-data-proprocessing" class="nav-link" data-scroll-target="#data-proprocessing">Data proprocessing</a>
   <ul class="collapse">
   <li><a href="#save-control-sequnces" id="toc-save-control-sequnces" class="nav-link" data-scroll-target="#save-control-sequnces">Save control sequnces</a></li>
@@ -3060,7 +3061,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">December 19, 2023</p>
+      <p class="date">January 4, 2024</p>
     </div>
   </div>
   
@@ -3073,7 +3074,8 @@ vertical-align: -.125em;
 <section id="load-packages" class="level2">
 <h2 class="anchored" data-anchor-id="load-packages">Load packages</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="fu">library</span>(edgeR)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="load-data-as-counts" class="level2">
@@ -3185,420 +3187,805 @@ vertical-align: -.125em;
 </div>
 </div>
 </section>
+<section id="load-data-as-tpm-salmon-transform-count-to-tpm-bambu" class="level2">
+<h2 class="anchored" data-anchor-id="load-data-as-tpm-salmon-transform-count-to-tpm-bambu">Load data as TPM (Salmon) / Transform count to TPM (Bambu)</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a><span class="co"># Long-read data (PacBio + Bambu)</span></span>
+<span id="cb13-2"><a href="#cb13-2"></a></span>
+<span id="cb13-3"><a href="#cb13-3"></a><span class="co"># 0.025</span></span>
+<span id="cb13-4"><a href="#cb13-4"></a>bambu_0<span class="fl">.025</span>_tpm <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">cpm</span>(bambu_0<span class="fl">.025</span>[<span class="sc">-</span><span class="dv">1</span>]))</span>
+<span id="cb13-5"><a href="#cb13-5"></a></span>
+<span id="cb13-6"><a href="#cb13-6"></a><span class="co"># 0.05</span></span>
+<span id="cb13-7"><a href="#cb13-7"></a>bambu_0<span class="fl">.05</span>_tpm <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">cpm</span>(bambu_0<span class="fl">.05</span>[<span class="sc">-</span><span class="dv">1</span>]))</span>
+<span id="cb13-8"><a href="#cb13-8"></a></span>
+<span id="cb13-9"><a href="#cb13-9"></a><span class="co"># 0.1</span></span>
+<span id="cb13-10"><a href="#cb13-10"></a>bambu_0<span class="fl">.1</span>_tpm <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">cpm</span>(bambu_0<span class="fl">.1</span>[<span class="sc">-</span><span class="dv">1</span>]))</span>
+<span id="cb13-11"><a href="#cb13-11"></a></span>
+<span id="cb13-12"><a href="#cb13-12"></a><span class="co"># 0.2</span></span>
+<span id="cb13-13"><a href="#cb13-13"></a>bambu_0<span class="fl">.2</span>_tpm <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">cpm</span>(bambu_0<span class="fl">.2</span>[<span class="sc">-</span><span class="dv">1</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a><span class="co"># Short-read data (Illumina and Salmon)</span></span>
+<span id="cb14-2"><a href="#cb14-2"></a></span>
+<span id="cb14-3"><a href="#cb14-3"></a><span class="do">## 0.025</span></span>
+<span id="cb14-4"><a href="#cb14-4"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path_to_data) </span>
+<span id="cb14-5"><a href="#cb14-5"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.025_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
+<span id="cb14-6"><a href="#cb14-6"></a></span>
+<span id="cb14-7"><a href="#cb14-7"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
+<span id="cb14-8"><a href="#cb14-8"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(path_to_data, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
+<span id="cb14-9"><a href="#cb14-9"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
+<span id="cb14-10"><a href="#cb14-10"></a>  TPM <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>TPM, quant<span class="sc">$</span>Name)</span>
+<span id="cb14-11"><a href="#cb14-11"></a>  <span class="fu">return</span>(TPM)</span>
+<span id="cb14-12"><a href="#cb14-12"></a>})</span>
+<span id="cb14-13"><a href="#cb14-13"></a></span>
+<span id="cb14-14"><a href="#cb14-14"></a>salmon_0<span class="fl">.025</span>_tpm <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)</span>
+<span id="cb14-15"><a href="#cb14-15"></a></span>
+<span id="cb14-16"><a href="#cb14-16"></a><span class="do">## 0.05</span></span>
+<span id="cb14-17"><a href="#cb14-17"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path_to_data) </span>
+<span id="cb14-18"><a href="#cb14-18"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.05_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
+<span id="cb14-19"><a href="#cb14-19"></a></span>
+<span id="cb14-20"><a href="#cb14-20"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
+<span id="cb14-21"><a href="#cb14-21"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(path_to_data, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
+<span id="cb14-22"><a href="#cb14-22"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
+<span id="cb14-23"><a href="#cb14-23"></a>  TPM <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>TPM, quant<span class="sc">$</span>Name)</span>
+<span id="cb14-24"><a href="#cb14-24"></a>  <span class="fu">return</span>(TPM)</span>
+<span id="cb14-25"><a href="#cb14-25"></a>})</span>
+<span id="cb14-26"><a href="#cb14-26"></a></span>
+<span id="cb14-27"><a href="#cb14-27"></a>salmon_0<span class="fl">.05</span>_tpm <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)</span>
+<span id="cb14-28"><a href="#cb14-28"></a></span>
+<span id="cb14-29"><a href="#cb14-29"></a><span class="do">## 0.1</span></span>
+<span id="cb14-30"><a href="#cb14-30"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path_to_data) </span>
+<span id="cb14-31"><a href="#cb14-31"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.1_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
+<span id="cb14-32"><a href="#cb14-32"></a></span>
+<span id="cb14-33"><a href="#cb14-33"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
+<span id="cb14-34"><a href="#cb14-34"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(path_to_data, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
+<span id="cb14-35"><a href="#cb14-35"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
+<span id="cb14-36"><a href="#cb14-36"></a>  TPM <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>TPM, quant<span class="sc">$</span>Name)</span>
+<span id="cb14-37"><a href="#cb14-37"></a>  <span class="fu">return</span>(TPM)</span>
+<span id="cb14-38"><a href="#cb14-38"></a>})</span>
+<span id="cb14-39"><a href="#cb14-39"></a></span>
+<span id="cb14-40"><a href="#cb14-40"></a>salmon_0<span class="fl">.1</span>_tpm <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)</span>
+<span id="cb14-41"><a href="#cb14-41"></a></span>
+<span id="cb14-42"><a href="#cb14-42"></a><span class="do">## 0.2</span></span>
+<span id="cb14-43"><a href="#cb14-43"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(path_to_data) </span>
+<span id="cb14-44"><a href="#cb14-44"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.2_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
+<span id="cb14-45"><a href="#cb14-45"></a></span>
+<span id="cb14-46"><a href="#cb14-46"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
+<span id="cb14-47"><a href="#cb14-47"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(path_to_data, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
+<span id="cb14-48"><a href="#cb14-48"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
+<span id="cb14-49"><a href="#cb14-49"></a>  TPM <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>TPM, quant<span class="sc">$</span>Name)</span>
+<span id="cb14-50"><a href="#cb14-50"></a>  <span class="fu">return</span>(TPM)</span>
+<span id="cb14-51"><a href="#cb14-51"></a>})</span>
+<span id="cb14-52"><a href="#cb14-52"></a></span>
+<span id="cb14-53"><a href="#cb14-53"></a>salmon_0<span class="fl">.2</span>_tpm <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.025</span>_tpm) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.025</span>_tpm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.05</span>_tpm) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.05</span>_tpm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.1</span>_tpm) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.1</span>_tpm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.2</span>_tpm) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.2</span>_tpm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+</div>
+</section>
 <section id="data-proprocessing" class="level2">
 <h2 class="anchored" data-anchor-id="data-proprocessing">Data proprocessing</h2>
 <section id="save-control-sequnces" class="level3">
 <h3 class="anchored" data-anchor-id="save-control-sequnces">Save control sequnces</h3>
+<section id="counts" class="level4">
+<h4 class="anchored" data-anchor-id="counts">Counts</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>patterns_to_remove <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;ENST&quot;</span>, <span class="st">&quot;Bambu&quot;</span>)</span>
-<span id="cb13-2"><a href="#cb13-2"></a></span>
-<span id="cb13-3"><a href="#cb13-3"></a><span class="co"># Bambu 0.025</span></span>
-<span id="cb13-4"><a href="#cb13-4"></a>bambu_0<span class="fl">.025</span>_ctrl <span class="ot">&lt;-</span></span>
-<span id="cb13-5"><a href="#cb13-5"></a>  bambu_0<span class="fl">.025</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb13-6"><a href="#cb13-6"></a>                     <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>)),]</span>
-<span id="cb13-7"><a href="#cb13-7"></a></span>
-<span id="cb13-8"><a href="#cb13-8"></a><span class="co"># Bambu 0.05</span></span>
-<span id="cb13-9"><a href="#cb13-9"></a>bambu_0<span class="fl">.05</span>_ctrl <span class="ot">&lt;-</span></span>
-<span id="cb13-10"><a href="#cb13-10"></a>  bambu_0<span class="fl">.05</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb13-11"><a href="#cb13-11"></a>                    <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>)),]</span>
-<span id="cb13-12"><a href="#cb13-12"></a></span>
-<span id="cb13-13"><a href="#cb13-13"></a><span class="co"># Bambu 0.1</span></span>
-<span id="cb13-14"><a href="#cb13-14"></a>bambu_0<span class="fl">.1</span>_ctrl <span class="ot">&lt;-</span></span>
-<span id="cb13-15"><a href="#cb13-15"></a>  bambu_0<span class="fl">.1</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb13-16"><a href="#cb13-16"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>)),]</span>
-<span id="cb13-17"><a href="#cb13-17"></a></span>
-<span id="cb13-18"><a href="#cb13-18"></a><span class="co"># Bambu 0.2</span></span>
-<span id="cb13-19"><a href="#cb13-19"></a>bambu_0<span class="fl">.2</span>_ctrl <span class="ot">&lt;-</span></span>
-<span id="cb13-20"><a href="#cb13-20"></a>  bambu_0<span class="fl">.2</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb13-21"><a href="#cb13-21"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>)),]</span>
-<span id="cb13-22"><a href="#cb13-22"></a></span>
-<span id="cb13-23"><a href="#cb13-23"></a><span class="co"># Salmon 0.025</span></span>
-<span id="cb13-24"><a href="#cb13-24"></a>salmon_0<span class="fl">.025</span>_ctrl <span class="ot">&lt;-</span></span>
-<span id="cb13-25"><a href="#cb13-25"></a>  salmon_0<span class="fl">.025</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb13-26"><a href="#cb13-26"></a>                      <span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>)),]</span>
-<span id="cb13-27"><a href="#cb13-27"></a></span>
-<span id="cb13-28"><a href="#cb13-28"></a><span class="co"># Salmon 0.05</span></span>
-<span id="cb13-29"><a href="#cb13-29"></a>salmon_0<span class="fl">.05</span>_ctrl <span class="ot">&lt;-</span></span>
-<span id="cb13-30"><a href="#cb13-30"></a>  salmon_0<span class="fl">.05</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb13-31"><a href="#cb13-31"></a>                     <span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>)),]</span>
-<span id="cb13-32"><a href="#cb13-32"></a></span>
-<span id="cb13-33"><a href="#cb13-33"></a><span class="co"># Salmon 0.1</span></span>
-<span id="cb13-34"><a href="#cb13-34"></a>salmon_0<span class="fl">.1</span>_ctrl <span class="ot">&lt;-</span></span>
-<span id="cb13-35"><a href="#cb13-35"></a>  salmon_0<span class="fl">.1</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb13-36"><a href="#cb13-36"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>)),]</span>
-<span id="cb13-37"><a href="#cb13-37"></a></span>
-<span id="cb13-38"><a href="#cb13-38"></a><span class="co"># Salmon 0.2</span></span>
-<span id="cb13-39"><a href="#cb13-39"></a>salmon_0<span class="fl">.2</span>_ctrl <span class="ot">&lt;-</span></span>
-<span id="cb13-40"><a href="#cb13-40"></a>  salmon_0<span class="fl">.2</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb13-41"><a href="#cb13-41"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>)),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1"></a>patterns_to_remove <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;ENST&quot;</span>, <span class="st">&quot;Bambu&quot;</span>)</span>
+<span id="cb23-2"><a href="#cb23-2"></a></span>
+<span id="cb23-3"><a href="#cb23-3"></a><span class="co"># Bambu 0.025</span></span>
+<span id="cb23-4"><a href="#cb23-4"></a>bambu_0<span class="fl">.025</span>_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb23-5"><a href="#cb23-5"></a>  bambu_0<span class="fl">.025</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb23-6"><a href="#cb23-6"></a>                     <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>)),]</span>
+<span id="cb23-7"><a href="#cb23-7"></a></span>
+<span id="cb23-8"><a href="#cb23-8"></a><span class="co"># Bambu 0.05</span></span>
+<span id="cb23-9"><a href="#cb23-9"></a>bambu_0<span class="fl">.05</span>_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb23-10"><a href="#cb23-10"></a>  bambu_0<span class="fl">.05</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb23-11"><a href="#cb23-11"></a>                    <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>)),]</span>
+<span id="cb23-12"><a href="#cb23-12"></a></span>
+<span id="cb23-13"><a href="#cb23-13"></a><span class="co"># Bambu 0.1</span></span>
+<span id="cb23-14"><a href="#cb23-14"></a>bambu_0<span class="fl">.1</span>_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb23-15"><a href="#cb23-15"></a>  bambu_0<span class="fl">.1</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb23-16"><a href="#cb23-16"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>)),]</span>
+<span id="cb23-17"><a href="#cb23-17"></a></span>
+<span id="cb23-18"><a href="#cb23-18"></a><span class="co"># Bambu 0.2</span></span>
+<span id="cb23-19"><a href="#cb23-19"></a>bambu_0<span class="fl">.2</span>_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb23-20"><a href="#cb23-20"></a>  bambu_0<span class="fl">.2</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb23-21"><a href="#cb23-21"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>)),]</span>
+<span id="cb23-22"><a href="#cb23-22"></a></span>
+<span id="cb23-23"><a href="#cb23-23"></a><span class="co"># Salmon 0.025</span></span>
+<span id="cb23-24"><a href="#cb23-24"></a>salmon_0<span class="fl">.025</span>_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb23-25"><a href="#cb23-25"></a>  salmon_0<span class="fl">.025</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb23-26"><a href="#cb23-26"></a>                      <span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>)),]</span>
+<span id="cb23-27"><a href="#cb23-27"></a></span>
+<span id="cb23-28"><a href="#cb23-28"></a><span class="co"># Salmon 0.05</span></span>
+<span id="cb23-29"><a href="#cb23-29"></a>salmon_0<span class="fl">.05</span>_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb23-30"><a href="#cb23-30"></a>  salmon_0<span class="fl">.05</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb23-31"><a href="#cb23-31"></a>                     <span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>)),]</span>
+<span id="cb23-32"><a href="#cb23-32"></a></span>
+<span id="cb23-33"><a href="#cb23-33"></a><span class="co"># Salmon 0.1</span></span>
+<span id="cb23-34"><a href="#cb23-34"></a>salmon_0<span class="fl">.1</span>_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb23-35"><a href="#cb23-35"></a>  salmon_0<span class="fl">.1</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb23-36"><a href="#cb23-36"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>)),]</span>
+<span id="cb23-37"><a href="#cb23-37"></a></span>
+<span id="cb23-38"><a href="#cb23-38"></a><span class="co"># Salmon 0.2</span></span>
+<span id="cb23-39"><a href="#cb23-39"></a>salmon_0<span class="fl">.2</span>_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb23-40"><a href="#cb23-40"></a>  salmon_0<span class="fl">.2</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb23-41"><a href="#cb23-41"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>)),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+</section>
+<section id="tpm" class="level4">
+<h4 class="anchored" data-anchor-id="tpm">TPM</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1"></a><span class="co"># Bambu 0.025</span></span>
+<span id="cb24-2"><a href="#cb24-2"></a>bambu_0<span class="fl">.025</span>_tpm_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb24-3"><a href="#cb24-3"></a>  bambu_0<span class="fl">.025</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb24-4"><a href="#cb24-4"></a>                     <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>_tpm)),]</span>
+<span id="cb24-5"><a href="#cb24-5"></a></span>
+<span id="cb24-6"><a href="#cb24-6"></a><span class="co"># Bambu 0.05</span></span>
+<span id="cb24-7"><a href="#cb24-7"></a>bambu_0<span class="fl">.05</span>_tpm_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb24-8"><a href="#cb24-8"></a>  bambu_0<span class="fl">.05</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb24-9"><a href="#cb24-9"></a>                    <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>_tpm)),]</span>
+<span id="cb24-10"><a href="#cb24-10"></a></span>
+<span id="cb24-11"><a href="#cb24-11"></a><span class="co"># Bambu 0.1</span></span>
+<span id="cb24-12"><a href="#cb24-12"></a>bambu_0<span class="fl">.1</span>_tpm_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb24-13"><a href="#cb24-13"></a>  bambu_0<span class="fl">.1</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb24-14"><a href="#cb24-14"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>_tpm)),]</span>
+<span id="cb24-15"><a href="#cb24-15"></a></span>
+<span id="cb24-16"><a href="#cb24-16"></a><span class="co"># Bambu 0.2</span></span>
+<span id="cb24-17"><a href="#cb24-17"></a>bambu_0<span class="fl">.2</span>_tpm_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb24-18"><a href="#cb24-18"></a>  bambu_0<span class="fl">.2</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb24-19"><a href="#cb24-19"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>_tpm)),]</span>
+<span id="cb24-20"><a href="#cb24-20"></a></span>
+<span id="cb24-21"><a href="#cb24-21"></a><span class="co"># Salmon 0.025</span></span>
+<span id="cb24-22"><a href="#cb24-22"></a>salmon_0<span class="fl">.025</span>_tpm_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb24-23"><a href="#cb24-23"></a>  salmon_0<span class="fl">.025</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb24-24"><a href="#cb24-24"></a>                      <span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>_tpm)),]</span>
+<span id="cb24-25"><a href="#cb24-25"></a></span>
+<span id="cb24-26"><a href="#cb24-26"></a><span class="co"># Salmon 0.05</span></span>
+<span id="cb24-27"><a href="#cb24-27"></a>salmon_0<span class="fl">.05</span>_tpm_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb24-28"><a href="#cb24-28"></a>  salmon_0<span class="fl">.05</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb24-29"><a href="#cb24-29"></a>                     <span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>_tpm)),]</span>
+<span id="cb24-30"><a href="#cb24-30"></a></span>
+<span id="cb24-31"><a href="#cb24-31"></a><span class="co"># Salmon 0.1</span></span>
+<span id="cb24-32"><a href="#cb24-32"></a>salmon_0<span class="fl">.1</span>_tpm_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb24-33"><a href="#cb24-33"></a>  salmon_0<span class="fl">.1</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb24-34"><a href="#cb24-34"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>_tpm)),]</span>
+<span id="cb24-35"><a href="#cb24-35"></a></span>
+<span id="cb24-36"><a href="#cb24-36"></a><span class="co"># Salmon 0.2</span></span>
+<span id="cb24-37"><a href="#cb24-37"></a>salmon_0<span class="fl">.2</span>_tpm_ctrl <span class="ot">&lt;-</span></span>
+<span id="cb24-38"><a href="#cb24-38"></a>  salmon_0<span class="fl">.2</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb24-39"><a href="#cb24-39"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>_tpm)),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
 </section>
 <section id="remove-control-sequences" class="level3">
 <h3 class="anchored" data-anchor-id="remove-control-sequences">Remove control sequences</h3>
+<section id="counts-1" class="level4">
+<h4 class="anchored" data-anchor-id="counts-1">Counts</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>patterns_to_remove <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;^DQ&quot;</span>, <span class="st">&quot;^EF&quot;</span>, <span class="st">&quot;^SIRV&quot;</span>)</span>
-<span id="cb14-2"><a href="#cb14-2"></a></span>
-<span id="cb14-3"><a href="#cb14-3"></a><span class="co"># Bambu 0.025</span></span>
-<span id="cb14-4"><a href="#cb14-4"></a>bambu_0<span class="fl">.025</span> <span class="ot">&lt;-</span></span>
-<span id="cb14-5"><a href="#cb14-5"></a>  bambu_0<span class="fl">.025</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb14-6"><a href="#cb14-6"></a>                     <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>)),]</span>
-<span id="cb14-7"><a href="#cb14-7"></a></span>
-<span id="cb14-8"><a href="#cb14-8"></a><span class="co"># Bambu 0.05</span></span>
-<span id="cb14-9"><a href="#cb14-9"></a>bambu_0<span class="fl">.05</span> <span class="ot">&lt;-</span></span>
-<span id="cb14-10"><a href="#cb14-10"></a>  bambu_0<span class="fl">.05</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb14-11"><a href="#cb14-11"></a>                    <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>)),]</span>
-<span id="cb14-12"><a href="#cb14-12"></a></span>
-<span id="cb14-13"><a href="#cb14-13"></a><span class="co"># Bambu 0.1</span></span>
-<span id="cb14-14"><a href="#cb14-14"></a>bambu_0<span class="fl">.1</span> <span class="ot">&lt;-</span></span>
-<span id="cb14-15"><a href="#cb14-15"></a>  bambu_0<span class="fl">.1</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb14-16"><a href="#cb14-16"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>)),]</span>
-<span id="cb14-17"><a href="#cb14-17"></a></span>
-<span id="cb14-18"><a href="#cb14-18"></a><span class="co"># Bambu 0.2</span></span>
-<span id="cb14-19"><a href="#cb14-19"></a>bambu_0<span class="fl">.2</span> <span class="ot">&lt;-</span></span>
-<span id="cb14-20"><a href="#cb14-20"></a>  bambu_0<span class="fl">.2</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb14-21"><a href="#cb14-21"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>)),]</span>
-<span id="cb14-22"><a href="#cb14-22"></a></span>
-<span id="cb14-23"><a href="#cb14-23"></a><span class="co"># Salmon 0.025</span></span>
-<span id="cb14-24"><a href="#cb14-24"></a>salmon_0<span class="fl">.025</span> <span class="ot">&lt;-</span></span>
-<span id="cb14-25"><a href="#cb14-25"></a>  salmon_0<span class="fl">.025</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb14-26"><a href="#cb14-26"></a>                      <span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>)),]</span>
-<span id="cb14-27"><a href="#cb14-27"></a></span>
-<span id="cb14-28"><a href="#cb14-28"></a><span class="co"># Salmon 0.05</span></span>
-<span id="cb14-29"><a href="#cb14-29"></a>salmon_0<span class="fl">.05</span> <span class="ot">&lt;-</span></span>
-<span id="cb14-30"><a href="#cb14-30"></a>  salmon_0<span class="fl">.05</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb14-31"><a href="#cb14-31"></a>                     <span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>)),]</span>
-<span id="cb14-32"><a href="#cb14-32"></a></span>
-<span id="cb14-33"><a href="#cb14-33"></a><span class="co"># Salmon 0.1</span></span>
-<span id="cb14-34"><a href="#cb14-34"></a>salmon_0<span class="fl">.1</span> <span class="ot">&lt;-</span></span>
-<span id="cb14-35"><a href="#cb14-35"></a>  salmon_0<span class="fl">.1</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb14-36"><a href="#cb14-36"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>)),]</span>
-<span id="cb14-37"><a href="#cb14-37"></a></span>
-<span id="cb14-38"><a href="#cb14-38"></a><span class="co"># Salmon 0.2</span></span>
-<span id="cb14-39"><a href="#cb14-39"></a>salmon_0<span class="fl">.2</span> <span class="ot">&lt;-</span></span>
-<span id="cb14-40"><a href="#cb14-40"></a>  salmon_0<span class="fl">.2</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
-<span id="cb14-41"><a href="#cb14-41"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>)),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1"></a>patterns_to_remove <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;^DQ&quot;</span>, <span class="st">&quot;^EF&quot;</span>, <span class="st">&quot;^SIRV&quot;</span>)</span>
+<span id="cb25-2"><a href="#cb25-2"></a></span>
+<span id="cb25-3"><a href="#cb25-3"></a><span class="co"># Bambu 0.025</span></span>
+<span id="cb25-4"><a href="#cb25-4"></a>bambu_0<span class="fl">.025</span> <span class="ot">&lt;-</span></span>
+<span id="cb25-5"><a href="#cb25-5"></a>  bambu_0<span class="fl">.025</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb25-6"><a href="#cb25-6"></a>                     <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>)),]</span>
+<span id="cb25-7"><a href="#cb25-7"></a></span>
+<span id="cb25-8"><a href="#cb25-8"></a><span class="co"># Bambu 0.05</span></span>
+<span id="cb25-9"><a href="#cb25-9"></a>bambu_0<span class="fl">.05</span> <span class="ot">&lt;-</span></span>
+<span id="cb25-10"><a href="#cb25-10"></a>  bambu_0<span class="fl">.05</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb25-11"><a href="#cb25-11"></a>                    <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>)),]</span>
+<span id="cb25-12"><a href="#cb25-12"></a></span>
+<span id="cb25-13"><a href="#cb25-13"></a><span class="co"># Bambu 0.1</span></span>
+<span id="cb25-14"><a href="#cb25-14"></a>bambu_0<span class="fl">.1</span> <span class="ot">&lt;-</span></span>
+<span id="cb25-15"><a href="#cb25-15"></a>  bambu_0<span class="fl">.1</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb25-16"><a href="#cb25-16"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>)),]</span>
+<span id="cb25-17"><a href="#cb25-17"></a></span>
+<span id="cb25-18"><a href="#cb25-18"></a><span class="co"># Bambu 0.2</span></span>
+<span id="cb25-19"><a href="#cb25-19"></a>bambu_0<span class="fl">.2</span> <span class="ot">&lt;-</span></span>
+<span id="cb25-20"><a href="#cb25-20"></a>  bambu_0<span class="fl">.2</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb25-21"><a href="#cb25-21"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>)),]</span>
+<span id="cb25-22"><a href="#cb25-22"></a></span>
+<span id="cb25-23"><a href="#cb25-23"></a><span class="co"># Salmon 0.025</span></span>
+<span id="cb25-24"><a href="#cb25-24"></a>salmon_0<span class="fl">.025</span> <span class="ot">&lt;-</span></span>
+<span id="cb25-25"><a href="#cb25-25"></a>  salmon_0<span class="fl">.025</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb25-26"><a href="#cb25-26"></a>                      <span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>)),]</span>
+<span id="cb25-27"><a href="#cb25-27"></a></span>
+<span id="cb25-28"><a href="#cb25-28"></a><span class="co"># Salmon 0.05</span></span>
+<span id="cb25-29"><a href="#cb25-29"></a>salmon_0<span class="fl">.05</span> <span class="ot">&lt;-</span></span>
+<span id="cb25-30"><a href="#cb25-30"></a>  salmon_0<span class="fl">.05</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb25-31"><a href="#cb25-31"></a>                     <span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>)),]</span>
+<span id="cb25-32"><a href="#cb25-32"></a></span>
+<span id="cb25-33"><a href="#cb25-33"></a><span class="co"># Salmon 0.1</span></span>
+<span id="cb25-34"><a href="#cb25-34"></a>salmon_0<span class="fl">.1</span> <span class="ot">&lt;-</span></span>
+<span id="cb25-35"><a href="#cb25-35"></a>  salmon_0<span class="fl">.1</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb25-36"><a href="#cb25-36"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>)),]</span>
+<span id="cb25-37"><a href="#cb25-37"></a></span>
+<span id="cb25-38"><a href="#cb25-38"></a><span class="co"># Salmon 0.2</span></span>
+<span id="cb25-39"><a href="#cb25-39"></a>salmon_0<span class="fl">.2</span> <span class="ot">&lt;-</span></span>
+<span id="cb25-40"><a href="#cb25-40"></a>  salmon_0<span class="fl">.2</span>[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb25-41"><a href="#cb25-41"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>)),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.025</span>) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.025</span>[<span class="sc">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.025</span>) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.025</span>[<span class="sc">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE TRUE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.05</span>) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.05</span>[<span class="sc">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.05</span>) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.05</span>[<span class="sc">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE TRUE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.1</span>) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.1</span>[<span class="sc">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.1</span>) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.1</span>[<span class="sc">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE TRUE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.2</span>) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.2</span>[<span class="sc">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.2</span>) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.2</span>[<span class="sc">-</span><span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE TRUE</code></pre>
 </div>
 </div>
 </section>
+<section id="tpm-1" class="level4">
+<h4 class="anchored" data-anchor-id="tpm-1">TPM</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1"></a><span class="co"># Bambu 0.025</span></span>
+<span id="cb34-2"><a href="#cb34-2"></a>bambu_0<span class="fl">.025</span>_tpm <span class="ot">&lt;-</span></span>
+<span id="cb34-3"><a href="#cb34-3"></a>  bambu_0<span class="fl">.025</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb34-4"><a href="#cb34-4"></a>                     <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>_tpm)),]</span>
+<span id="cb34-5"><a href="#cb34-5"></a></span>
+<span id="cb34-6"><a href="#cb34-6"></a><span class="co"># Bambu 0.05</span></span>
+<span id="cb34-7"><a href="#cb34-7"></a>bambu_0<span class="fl">.05</span>_tpm <span class="ot">&lt;-</span></span>
+<span id="cb34-8"><a href="#cb34-8"></a>  bambu_0<span class="fl">.05</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb34-9"><a href="#cb34-9"></a>                    <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>_tpm)),]</span>
+<span id="cb34-10"><a href="#cb34-10"></a></span>
+<span id="cb34-11"><a href="#cb34-11"></a><span class="co"># Bambu 0.1</span></span>
+<span id="cb34-12"><a href="#cb34-12"></a>bambu_0<span class="fl">.1</span>_tpm <span class="ot">&lt;-</span></span>
+<span id="cb34-13"><a href="#cb34-13"></a>  bambu_0<span class="fl">.1</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb34-14"><a href="#cb34-14"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>_tpm)),]</span>
+<span id="cb34-15"><a href="#cb34-15"></a></span>
+<span id="cb34-16"><a href="#cb34-16"></a><span class="co"># Bambu 0.2</span></span>
+<span id="cb34-17"><a href="#cb34-17"></a>bambu_0<span class="fl">.2</span>_tpm <span class="ot">&lt;-</span></span>
+<span id="cb34-18"><a href="#cb34-18"></a>  bambu_0<span class="fl">.2</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb34-19"><a href="#cb34-19"></a>                   <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>_tpm)),]</span>
+<span id="cb34-20"><a href="#cb34-20"></a></span>
+<span id="cb34-21"><a href="#cb34-21"></a><span class="co"># Salmon 0.025</span></span>
+<span id="cb34-22"><a href="#cb34-22"></a>salmon_0<span class="fl">.025</span>_tpm <span class="ot">&lt;-</span></span>
+<span id="cb34-23"><a href="#cb34-23"></a>  salmon_0<span class="fl">.025</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb34-24"><a href="#cb34-24"></a>                      <span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>_tpm)),]</span>
+<span id="cb34-25"><a href="#cb34-25"></a></span>
+<span id="cb34-26"><a href="#cb34-26"></a><span class="co"># Salmon 0.05</span></span>
+<span id="cb34-27"><a href="#cb34-27"></a>salmon_0<span class="fl">.05</span>_tpm <span class="ot">&lt;-</span></span>
+<span id="cb34-28"><a href="#cb34-28"></a>  salmon_0<span class="fl">.05</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb34-29"><a href="#cb34-29"></a>                     <span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>_tpm)),]</span>
+<span id="cb34-30"><a href="#cb34-30"></a></span>
+<span id="cb34-31"><a href="#cb34-31"></a><span class="co"># Salmon 0.1</span></span>
+<span id="cb34-32"><a href="#cb34-32"></a>salmon_0<span class="fl">.1</span>_tpm <span class="ot">&lt;-</span></span>
+<span id="cb34-33"><a href="#cb34-33"></a>  salmon_0<span class="fl">.1</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb34-34"><a href="#cb34-34"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>_tpm)),]</span>
+<span id="cb34-35"><a href="#cb34-35"></a></span>
+<span id="cb34-36"><a href="#cb34-36"></a><span class="co"># Salmon 0.2</span></span>
+<span id="cb34-37"><a href="#cb34-37"></a>salmon_0<span class="fl">.2</span>_tpm <span class="ot">&lt;-</span></span>
+<span id="cb34-38"><a href="#cb34-38"></a>  salmon_0<span class="fl">.2</span>_tpm[<span class="sc">!</span><span class="fu">grepl</span>(<span class="fu">paste</span>(patterns_to_remove, <span class="at">collapse =</span> <span class="st">&quot;|&quot;</span>),</span>
+<span id="cb34-39"><a href="#cb34-39"></a>                    <span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>_tpm)),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.025</span>_tpm) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.025</span>_tpm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.05</span>_tpm) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.05</span>_tpm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.1</span>_tpm) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.1</span>_tpm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.2</span>_tpm) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.2</span>_tpm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+</div>
+</section>
+</section>
 <section id="sort-data-frames" class="level3">
 <h3 class="anchored" data-anchor-id="sort-data-frames">Sort data frames</h3>
+<section id="counts-2" class="level4">
+<h4 class="anchored" data-anchor-id="counts-2">Counts</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1"></a><span class="co"># 0.025</span></span>
-<span id="cb23-2"><a href="#cb23-2"></a>bambu_0<span class="fl">.025</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span> <span class="sc">%&gt;%</span></span>
-<span id="cb23-3"><a href="#cb23-3"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb23-4"><a href="#cb23-4"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
-<span id="cb23-5"><a href="#cb23-5"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
-<span id="cb23-6"><a href="#cb23-6"></a></span>
-<span id="cb23-7"><a href="#cb23-7"></a>salmon_0<span class="fl">.025</span> <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span> <span class="sc">%&gt;%</span></span>
-<span id="cb23-8"><a href="#cb23-8"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb23-9"><a href="#cb23-9"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
-<span id="cb23-10"><a href="#cb23-10"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
-<span id="cb23-11"><a href="#cb23-11"></a></span>
-<span id="cb23-12"><a href="#cb23-12"></a><span class="co"># 0.05</span></span>
-<span id="cb23-13"><a href="#cb23-13"></a>bambu_0<span class="fl">.05</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span> <span class="sc">%&gt;%</span></span>
-<span id="cb23-14"><a href="#cb23-14"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb23-15"><a href="#cb23-15"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
-<span id="cb23-16"><a href="#cb23-16"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
-<span id="cb23-17"><a href="#cb23-17"></a></span>
-<span id="cb23-18"><a href="#cb23-18"></a>salmon_0<span class="fl">.05</span> <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span> <span class="sc">%&gt;%</span></span>
-<span id="cb23-19"><a href="#cb23-19"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb23-20"><a href="#cb23-20"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
-<span id="cb23-21"><a href="#cb23-21"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
-<span id="cb23-22"><a href="#cb23-22"></a></span>
-<span id="cb23-23"><a href="#cb23-23"></a><span class="co"># 0.1</span></span>
-<span id="cb23-24"><a href="#cb23-24"></a>bambu_0<span class="fl">.1</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span> <span class="sc">%&gt;%</span></span>
-<span id="cb23-25"><a href="#cb23-25"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb23-26"><a href="#cb23-26"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
-<span id="cb23-27"><a href="#cb23-27"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
-<span id="cb23-28"><a href="#cb23-28"></a></span>
-<span id="cb23-29"><a href="#cb23-29"></a>salmon_0<span class="fl">.1</span> <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span> <span class="sc">%&gt;%</span></span>
-<span id="cb23-30"><a href="#cb23-30"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb23-31"><a href="#cb23-31"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
-<span id="cb23-32"><a href="#cb23-32"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
-<span id="cb23-33"><a href="#cb23-33"></a></span>
-<span id="cb23-34"><a href="#cb23-34"></a><span class="co"># 0.2</span></span>
-<span id="cb23-35"><a href="#cb23-35"></a>bambu_0<span class="fl">.2</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span> <span class="sc">%&gt;%</span></span>
-<span id="cb23-36"><a href="#cb23-36"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb23-37"><a href="#cb23-37"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
-<span id="cb23-38"><a href="#cb23-38"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
-<span id="cb23-39"><a href="#cb23-39"></a></span>
-<span id="cb23-40"><a href="#cb23-40"></a>salmon_0<span class="fl">.2</span> <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span> <span class="sc">%&gt;%</span></span>
-<span id="cb23-41"><a href="#cb23-41"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb23-42"><a href="#cb23-42"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
-<span id="cb23-43"><a href="#cb23-43"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
-<span id="cb23-44"><a href="#cb23-44"></a></span>
-<span id="cb23-45"><a href="#cb23-45"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1"></a><span class="co"># 0.025</span></span>
+<span id="cb43-2"><a href="#cb43-2"></a>bambu_0<span class="fl">.025</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span> <span class="sc">%&gt;%</span></span>
+<span id="cb43-3"><a href="#cb43-3"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-4"><a href="#cb43-4"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-5"><a href="#cb43-5"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb43-6"><a href="#cb43-6"></a></span>
+<span id="cb43-7"><a href="#cb43-7"></a>salmon_0<span class="fl">.025</span> <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span> <span class="sc">%&gt;%</span></span>
+<span id="cb43-8"><a href="#cb43-8"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-9"><a href="#cb43-9"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-10"><a href="#cb43-10"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb43-11"><a href="#cb43-11"></a></span>
+<span id="cb43-12"><a href="#cb43-12"></a><span class="co"># 0.05</span></span>
+<span id="cb43-13"><a href="#cb43-13"></a>bambu_0<span class="fl">.05</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span> <span class="sc">%&gt;%</span></span>
+<span id="cb43-14"><a href="#cb43-14"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-15"><a href="#cb43-15"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-16"><a href="#cb43-16"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb43-17"><a href="#cb43-17"></a></span>
+<span id="cb43-18"><a href="#cb43-18"></a>salmon_0<span class="fl">.05</span> <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span> <span class="sc">%&gt;%</span></span>
+<span id="cb43-19"><a href="#cb43-19"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-20"><a href="#cb43-20"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-21"><a href="#cb43-21"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb43-22"><a href="#cb43-22"></a></span>
+<span id="cb43-23"><a href="#cb43-23"></a><span class="co"># 0.1</span></span>
+<span id="cb43-24"><a href="#cb43-24"></a>bambu_0<span class="fl">.1</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span> <span class="sc">%&gt;%</span></span>
+<span id="cb43-25"><a href="#cb43-25"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-26"><a href="#cb43-26"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-27"><a href="#cb43-27"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb43-28"><a href="#cb43-28"></a></span>
+<span id="cb43-29"><a href="#cb43-29"></a>salmon_0<span class="fl">.1</span> <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span> <span class="sc">%&gt;%</span></span>
+<span id="cb43-30"><a href="#cb43-30"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-31"><a href="#cb43-31"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-32"><a href="#cb43-32"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb43-33"><a href="#cb43-33"></a></span>
+<span id="cb43-34"><a href="#cb43-34"></a><span class="co"># 0.2</span></span>
+<span id="cb43-35"><a href="#cb43-35"></a>bambu_0<span class="fl">.2</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span> <span class="sc">%&gt;%</span></span>
+<span id="cb43-36"><a href="#cb43-36"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-37"><a href="#cb43-37"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-38"><a href="#cb43-38"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb43-39"><a href="#cb43-39"></a></span>
+<span id="cb43-40"><a href="#cb43-40"></a>salmon_0<span class="fl">.2</span> <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span> <span class="sc">%&gt;%</span></span>
+<span id="cb43-41"><a href="#cb43-41"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb43-42"><a href="#cb43-42"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb43-43"><a href="#cb43-43"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb43-44"><a href="#cb43-44"></a></span>
+<span id="cb43-45"><a href="#cb43-45"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0</code></pre>
 </div>
 </div>
+</section>
+<section id="tpm-2" class="level4">
+<h4 class="anchored" data-anchor-id="tpm-2">TPM</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1"></a><span class="co"># 0.025</span></span>
+<span id="cb51-2"><a href="#cb51-2"></a>bambu_0<span class="fl">.025</span>_tpm <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span>_tpm <span class="sc">%&gt;%</span></span>
+<span id="cb51-3"><a href="#cb51-3"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-4"><a href="#cb51-4"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb51-5"><a href="#cb51-5"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb51-6"><a href="#cb51-6"></a></span>
+<span id="cb51-7"><a href="#cb51-7"></a>salmon_0<span class="fl">.025</span>_tpm <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span>_tpm <span class="sc">%&gt;%</span></span>
+<span id="cb51-8"><a href="#cb51-8"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-9"><a href="#cb51-9"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb51-10"><a href="#cb51-10"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb51-11"><a href="#cb51-11"></a></span>
+<span id="cb51-12"><a href="#cb51-12"></a><span class="co"># 0.05</span></span>
+<span id="cb51-13"><a href="#cb51-13"></a>bambu_0<span class="fl">.05</span>_tpm <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span>_tpm <span class="sc">%&gt;%</span></span>
+<span id="cb51-14"><a href="#cb51-14"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-15"><a href="#cb51-15"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb51-16"><a href="#cb51-16"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb51-17"><a href="#cb51-17"></a></span>
+<span id="cb51-18"><a href="#cb51-18"></a>salmon_0<span class="fl">.05</span>_tpm <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span>_tpm <span class="sc">%&gt;%</span></span>
+<span id="cb51-19"><a href="#cb51-19"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-20"><a href="#cb51-20"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb51-21"><a href="#cb51-21"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb51-22"><a href="#cb51-22"></a></span>
+<span id="cb51-23"><a href="#cb51-23"></a><span class="co"># 0.1</span></span>
+<span id="cb51-24"><a href="#cb51-24"></a>bambu_0<span class="fl">.1</span>_tpm <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span>_tpm <span class="sc">%&gt;%</span></span>
+<span id="cb51-25"><a href="#cb51-25"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-26"><a href="#cb51-26"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb51-27"><a href="#cb51-27"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb51-28"><a href="#cb51-28"></a></span>
+<span id="cb51-29"><a href="#cb51-29"></a>salmon_0<span class="fl">.1</span>_tpm <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span>_tpm <span class="sc">%&gt;%</span></span>
+<span id="cb51-30"><a href="#cb51-30"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-31"><a href="#cb51-31"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb51-32"><a href="#cb51-32"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb51-33"><a href="#cb51-33"></a></span>
+<span id="cb51-34"><a href="#cb51-34"></a><span class="co"># 0.2</span></span>
+<span id="cb51-35"><a href="#cb51-35"></a>bambu_0<span class="fl">.2</span>_tpm <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span>_tpm <span class="sc">%&gt;%</span></span>
+<span id="cb51-36"><a href="#cb51-36"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-37"><a href="#cb51-37"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb51-38"><a href="#cb51-38"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb51-39"><a href="#cb51-39"></a></span>
+<span id="cb51-40"><a href="#cb51-40"></a>salmon_0<span class="fl">.2</span>_tpm <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span>_tpm <span class="sc">%&gt;%</span></span>
+<span id="cb51-41"><a href="#cb51-41"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb51-42"><a href="#cb51-42"></a>  <span class="fu">arrange</span>(tx_id) <span class="sc">%&gt;%</span></span>
+<span id="cb51-43"><a href="#cb51-43"></a>  <span class="fu">column_to_rownames</span>(<span class="at">var =</span> <span class="st">&quot;tx_id&quot;</span>)</span>
+<span id="cb51-44"><a href="#cb51-44"></a></span>
+<span id="cb51-45"><a href="#cb51-45"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>_tpm) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>_tpm))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>_tpm) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>_tpm))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>_tpm) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>_tpm))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1"></a><span class="fu">sum</span>(<span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>_tpm) <span class="sc">!=</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>_tpm))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+</div>
+</section>
 </section>
 <section id="create-metadata" class="level3">
 <h3 class="anchored" data-anchor-id="create-metadata">Create metadata</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1"></a><span class="co"># transcript meta data</span></span>
-<span id="cb31-2"><a href="#cb31-2"></a></span>
-<span id="cb31-3"><a href="#cb31-3"></a><span class="do">## 0.025</span></span>
-<span id="cb31-4"><a href="#cb31-4"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">&quot;data/&quot;</span>) </span>
-<span id="cb31-5"><a href="#cb31-5"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.025_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
-<span id="cb31-6"><a href="#cb31-6"></a></span>
-<span id="cb31-7"><a href="#cb31-7"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
-<span id="cb31-8"><a href="#cb31-8"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;data/&quot;</span>, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
-<span id="cb31-9"><a href="#cb31-9"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
-<span id="cb31-10"><a href="#cb31-10"></a>  <span class="fu">print</span>(quant)</span>
-<span id="cb31-11"><a href="#cb31-11"></a>  EffectiveLength <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>EffectiveLength, quant<span class="sc">$</span>Name)</span>
-<span id="cb31-12"><a href="#cb31-12"></a>  <span class="fu">return</span>(EffectiveLength)</span>
-<span id="cb31-13"><a href="#cb31-13"></a>})</span>
-<span id="cb31-14"><a href="#cb31-14"></a></span>
-<span id="cb31-15"><a href="#cb31-15"></a>metatranscript_0<span class="fl">.025</span> <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)[<span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>),]</span>
-<span id="cb31-16"><a href="#cb31-16"></a></span>
-<span id="cb31-17"><a href="#cb31-17"></a><span class="do">## 0.05</span></span>
-<span id="cb31-18"><a href="#cb31-18"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">&quot;data/&quot;</span>) </span>
-<span id="cb31-19"><a href="#cb31-19"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.05_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
-<span id="cb31-20"><a href="#cb31-20"></a></span>
-<span id="cb31-21"><a href="#cb31-21"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
-<span id="cb31-22"><a href="#cb31-22"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;data/&quot;</span>, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
-<span id="cb31-23"><a href="#cb31-23"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
-<span id="cb31-24"><a href="#cb31-24"></a>  EffectiveLength <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>EffectiveLength, quant<span class="sc">$</span>Name)</span>
-<span id="cb31-25"><a href="#cb31-25"></a>  <span class="fu">return</span>(EffectiveLength)</span>
-<span id="cb31-26"><a href="#cb31-26"></a>})</span>
-<span id="cb31-27"><a href="#cb31-27"></a></span>
-<span id="cb31-28"><a href="#cb31-28"></a>metatranscript_0<span class="fl">.05</span> <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)[<span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>),]</span>
-<span id="cb31-29"><a href="#cb31-29"></a></span>
-<span id="cb31-30"><a href="#cb31-30"></a></span>
-<span id="cb31-31"><a href="#cb31-31"></a><span class="do">## 0.1</span></span>
-<span id="cb31-32"><a href="#cb31-32"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">&quot;data/&quot;</span>) </span>
-<span id="cb31-33"><a href="#cb31-33"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.1_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
-<span id="cb31-34"><a href="#cb31-34"></a></span>
-<span id="cb31-35"><a href="#cb31-35"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
-<span id="cb31-36"><a href="#cb31-36"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;data/&quot;</span>, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
-<span id="cb31-37"><a href="#cb31-37"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
-<span id="cb31-38"><a href="#cb31-38"></a>  EffectiveLength <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>EffectiveLength, quant<span class="sc">$</span>Name)</span>
-<span id="cb31-39"><a href="#cb31-39"></a>  <span class="fu">return</span>(EffectiveLength)</span>
-<span id="cb31-40"><a href="#cb31-40"></a>})</span>
-<span id="cb31-41"><a href="#cb31-41"></a></span>
-<span id="cb31-42"><a href="#cb31-42"></a>metatranscript_0<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)[<span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>),]</span>
-<span id="cb31-43"><a href="#cb31-43"></a></span>
-<span id="cb31-44"><a href="#cb31-44"></a><span class="do">## 0.2</span></span>
-<span id="cb31-45"><a href="#cb31-45"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">&quot;data/&quot;</span>) </span>
-<span id="cb31-46"><a href="#cb31-46"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.2_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
-<span id="cb31-47"><a href="#cb31-47"></a></span>
-<span id="cb31-48"><a href="#cb31-48"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
-<span id="cb31-49"><a href="#cb31-49"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;data/&quot;</span>, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
-<span id="cb31-50"><a href="#cb31-50"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
-<span id="cb31-51"><a href="#cb31-51"></a>  EffectiveLength <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>EffectiveLength, quant<span class="sc">$</span>Name)</span>
-<span id="cb31-52"><a href="#cb31-52"></a>  <span class="fu">return</span>(EffectiveLength)</span>
-<span id="cb31-53"><a href="#cb31-53"></a>})</span>
-<span id="cb31-54"><a href="#cb31-54"></a></span>
-<span id="cb31-55"><a href="#cb31-55"></a>metatranscript_0<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)[<span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>),]</span>
-<span id="cb31-56"><a href="#cb31-56"></a></span>
-<span id="cb31-57"><a href="#cb31-57"></a></span>
-<span id="cb31-58"><a href="#cb31-58"></a><span class="co"># gene meta data</span></span>
-<span id="cb31-59"><a href="#cb31-59"></a></span>
-<span id="cb31-60"><a href="#cb31-60"></a><span class="do">## 0.025</span></span>
-<span id="cb31-61"><a href="#cb31-61"></a>metagenes_0<span class="fl">.025</span> <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">gene_id =</span> bambu_0<span class="fl">.025</span><span class="sc">$</span>GENEID)</span>
-<span id="cb31-62"><a href="#cb31-62"></a><span class="fu">rownames</span>(metagenes_0<span class="fl">.025</span>) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>)</span>
-<span id="cb31-63"><a href="#cb31-63"></a>bambu_0<span class="fl">.025</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span>[<span class="sc">-</span><span class="dv">1</span>]</span>
-<span id="cb31-64"><a href="#cb31-64"></a></span>
-<span id="cb31-65"><a href="#cb31-65"></a><span class="do">## 0.05</span></span>
-<span id="cb31-66"><a href="#cb31-66"></a>metagenes_0<span class="fl">.05</span> <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">gene_id =</span> bambu_0<span class="fl">.05</span><span class="sc">$</span>GENEID)</span>
-<span id="cb31-67"><a href="#cb31-67"></a><span class="fu">rownames</span>(metagenes_0<span class="fl">.05</span>) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>)</span>
-<span id="cb31-68"><a href="#cb31-68"></a>bambu_0<span class="fl">.05</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span>[<span class="sc">-</span><span class="dv">1</span>]</span>
-<span id="cb31-69"><a href="#cb31-69"></a></span>
-<span id="cb31-70"><a href="#cb31-70"></a><span class="do">## 0.1</span></span>
-<span id="cb31-71"><a href="#cb31-71"></a>metagenes_0<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">gene_id =</span> bambu_0<span class="fl">.1</span><span class="sc">$</span>GENEID)</span>
-<span id="cb31-72"><a href="#cb31-72"></a><span class="fu">rownames</span>(metagenes_0<span class="fl">.1</span>) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>)</span>
-<span id="cb31-73"><a href="#cb31-73"></a>bambu_0<span class="fl">.1</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span>[<span class="sc">-</span><span class="dv">1</span>]</span>
-<span id="cb31-74"><a href="#cb31-74"></a></span>
-<span id="cb31-75"><a href="#cb31-75"></a><span class="do">## 0.2</span></span>
-<span id="cb31-76"><a href="#cb31-76"></a>metagenes_0<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">gene_id =</span> bambu_0<span class="fl">.2</span><span class="sc">$</span>GENEID)</span>
-<span id="cb31-77"><a href="#cb31-77"></a><span class="fu">rownames</span>(metagenes_0<span class="fl">.2</span>) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>)</span>
-<span id="cb31-78"><a href="#cb31-78"></a>bambu_0<span class="fl">.2</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span>[<span class="sc">-</span><span class="dv">1</span>]</span>
-<span id="cb31-79"><a href="#cb31-79"></a></span>
-<span id="cb31-80"><a href="#cb31-80"></a></span>
-<span id="cb31-81"><a href="#cb31-81"></a><span class="co"># sample meta data</span></span>
-<span id="cb31-82"><a href="#cb31-82"></a>condition <span class="ot">&lt;-</span></span>
-<span id="cb31-83"><a href="#cb31-83"></a>  <span class="fu">unlist</span>(<span class="fu">strsplit</span>(<span class="fu">colnames</span>(bambu_0<span class="fl">.025</span>), <span class="at">split =</span> <span class="st">&quot;.aligned.sorted&quot;</span>))</span>
-<span id="cb31-84"><a href="#cb31-84"></a></span>
-<span id="cb31-85"><a href="#cb31-85"></a>metadata <span class="ot">&lt;-</span></span>
-<span id="cb31-86"><a href="#cb31-86"></a>  <span class="fu">data.frame</span>(</span>
-<span id="cb31-87"><a href="#cb31-87"></a>    <span class="at">sampleID =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">11</span>),</span>
-<span id="cb31-88"><a href="#cb31-88"></a>    <span class="at">condition =</span> condition,</span>
-<span id="cb31-89"><a href="#cb31-89"></a>    <span class="at">time =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">5</span>)</span>
-<span id="cb31-90"><a href="#cb31-90"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1"></a><span class="co"># transcript meta data</span></span>
+<span id="cb59-2"><a href="#cb59-2"></a></span>
+<span id="cb59-3"><a href="#cb59-3"></a><span class="do">## 0.025</span></span>
+<span id="cb59-4"><a href="#cb59-4"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">&quot;data/&quot;</span>) </span>
+<span id="cb59-5"><a href="#cb59-5"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.025_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
+<span id="cb59-6"><a href="#cb59-6"></a></span>
+<span id="cb59-7"><a href="#cb59-7"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
+<span id="cb59-8"><a href="#cb59-8"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;data/&quot;</span>, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
+<span id="cb59-9"><a href="#cb59-9"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
+<span id="cb59-10"><a href="#cb59-10"></a>  <span class="fu">print</span>(quant)</span>
+<span id="cb59-11"><a href="#cb59-11"></a>  EffectiveLength <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>EffectiveLength, quant<span class="sc">$</span>Name)</span>
+<span id="cb59-12"><a href="#cb59-12"></a>  <span class="fu">return</span>(EffectiveLength)</span>
+<span id="cb59-13"><a href="#cb59-13"></a>})</span>
+<span id="cb59-14"><a href="#cb59-14"></a></span>
+<span id="cb59-15"><a href="#cb59-15"></a>metatranscript_0<span class="fl">.025</span> <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)[<span class="fu">rownames</span>(salmon_0<span class="fl">.025</span>),]</span>
+<span id="cb59-16"><a href="#cb59-16"></a></span>
+<span id="cb59-17"><a href="#cb59-17"></a><span class="do">## 0.05</span></span>
+<span id="cb59-18"><a href="#cb59-18"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">&quot;data/&quot;</span>) </span>
+<span id="cb59-19"><a href="#cb59-19"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.05_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
+<span id="cb59-20"><a href="#cb59-20"></a></span>
+<span id="cb59-21"><a href="#cb59-21"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
+<span id="cb59-22"><a href="#cb59-22"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;data/&quot;</span>, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
+<span id="cb59-23"><a href="#cb59-23"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
+<span id="cb59-24"><a href="#cb59-24"></a>  EffectiveLength <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>EffectiveLength, quant<span class="sc">$</span>Name)</span>
+<span id="cb59-25"><a href="#cb59-25"></a>  <span class="fu">return</span>(EffectiveLength)</span>
+<span id="cb59-26"><a href="#cb59-26"></a>})</span>
+<span id="cb59-27"><a href="#cb59-27"></a></span>
+<span id="cb59-28"><a href="#cb59-28"></a>metatranscript_0<span class="fl">.05</span> <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)[<span class="fu">rownames</span>(salmon_0<span class="fl">.05</span>),]</span>
+<span id="cb59-29"><a href="#cb59-29"></a></span>
+<span id="cb59-30"><a href="#cb59-30"></a></span>
+<span id="cb59-31"><a href="#cb59-31"></a><span class="do">## 0.1</span></span>
+<span id="cb59-32"><a href="#cb59-32"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">&quot;data/&quot;</span>) </span>
+<span id="cb59-33"><a href="#cb59-33"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.1_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
+<span id="cb59-34"><a href="#cb59-34"></a></span>
+<span id="cb59-35"><a href="#cb59-35"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
+<span id="cb59-36"><a href="#cb59-36"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;data/&quot;</span>, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
+<span id="cb59-37"><a href="#cb59-37"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
+<span id="cb59-38"><a href="#cb59-38"></a>  EffectiveLength <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>EffectiveLength, quant<span class="sc">$</span>Name)</span>
+<span id="cb59-39"><a href="#cb59-39"></a>  <span class="fu">return</span>(EffectiveLength)</span>
+<span id="cb59-40"><a href="#cb59-40"></a>})</span>
+<span id="cb59-41"><a href="#cb59-41"></a></span>
+<span id="cb59-42"><a href="#cb59-42"></a>metatranscript_0<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)[<span class="fu">rownames</span>(salmon_0<span class="fl">.1</span>),]</span>
+<span id="cb59-43"><a href="#cb59-43"></a></span>
+<span id="cb59-44"><a href="#cb59-44"></a><span class="do">## 0.2</span></span>
+<span id="cb59-45"><a href="#cb59-45"></a>samples <span class="ot">&lt;-</span> <span class="fu">list.files</span>(<span class="st">&quot;data/&quot;</span>) </span>
+<span id="cb59-46"><a href="#cb59-46"></a>samples <span class="ot">&lt;-</span> samples[<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">&quot;0.2_salmon&quot;</span>, <span class="at">x =</span> samples)]</span>
+<span id="cb59-47"><a href="#cb59-47"></a></span>
+<span id="cb59-48"><a href="#cb59-48"></a>expr <span class="ot">&lt;-</span> <span class="fu">sapply</span>(samples, <span class="cf">function</span>(sample) {</span>
+<span id="cb59-49"><a href="#cb59-49"></a>  file <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;data/&quot;</span>, sample, <span class="st">&quot;/&quot;</span>, <span class="st">&quot;quant.sf&quot;</span>)</span>
+<span id="cb59-50"><a href="#cb59-50"></a>  quant <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(file, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span>, <span class="at">header =</span> T)</span>
+<span id="cb59-51"><a href="#cb59-51"></a>  EffectiveLength <span class="ot">&lt;-</span> <span class="fu">setNames</span>(quant<span class="sc">$</span>EffectiveLength, quant<span class="sc">$</span>Name)</span>
+<span id="cb59-52"><a href="#cb59-52"></a>  <span class="fu">return</span>(EffectiveLength)</span>
+<span id="cb59-53"><a href="#cb59-53"></a>})</span>
+<span id="cb59-54"><a href="#cb59-54"></a></span>
+<span id="cb59-55"><a href="#cb59-55"></a>metatranscript_0<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(expr)[<span class="fu">rownames</span>(salmon_0<span class="fl">.2</span>),]</span>
+<span id="cb59-56"><a href="#cb59-56"></a></span>
+<span id="cb59-57"><a href="#cb59-57"></a></span>
+<span id="cb59-58"><a href="#cb59-58"></a><span class="co"># gene meta data</span></span>
+<span id="cb59-59"><a href="#cb59-59"></a></span>
+<span id="cb59-60"><a href="#cb59-60"></a><span class="do">## 0.025</span></span>
+<span id="cb59-61"><a href="#cb59-61"></a>metagenes_0<span class="fl">.025</span> <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">gene_id =</span> bambu_0<span class="fl">.025</span><span class="sc">$</span>GENEID)</span>
+<span id="cb59-62"><a href="#cb59-62"></a><span class="fu">rownames</span>(metagenes_0<span class="fl">.025</span>) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.025</span>)</span>
+<span id="cb59-63"><a href="#cb59-63"></a>bambu_0<span class="fl">.025</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span>[<span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb59-64"><a href="#cb59-64"></a></span>
+<span id="cb59-65"><a href="#cb59-65"></a><span class="do">## 0.05</span></span>
+<span id="cb59-66"><a href="#cb59-66"></a>metagenes_0<span class="fl">.05</span> <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">gene_id =</span> bambu_0<span class="fl">.05</span><span class="sc">$</span>GENEID)</span>
+<span id="cb59-67"><a href="#cb59-67"></a><span class="fu">rownames</span>(metagenes_0<span class="fl">.05</span>) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.05</span>)</span>
+<span id="cb59-68"><a href="#cb59-68"></a>bambu_0<span class="fl">.05</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span>[<span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb59-69"><a href="#cb59-69"></a></span>
+<span id="cb59-70"><a href="#cb59-70"></a><span class="do">## 0.1</span></span>
+<span id="cb59-71"><a href="#cb59-71"></a>metagenes_0<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">gene_id =</span> bambu_0<span class="fl">.1</span><span class="sc">$</span>GENEID)</span>
+<span id="cb59-72"><a href="#cb59-72"></a><span class="fu">rownames</span>(metagenes_0<span class="fl">.1</span>) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.1</span>)</span>
+<span id="cb59-73"><a href="#cb59-73"></a>bambu_0<span class="fl">.1</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span>[<span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb59-74"><a href="#cb59-74"></a></span>
+<span id="cb59-75"><a href="#cb59-75"></a><span class="do">## 0.2</span></span>
+<span id="cb59-76"><a href="#cb59-76"></a>metagenes_0<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">gene_id =</span> bambu_0<span class="fl">.2</span><span class="sc">$</span>GENEID)</span>
+<span id="cb59-77"><a href="#cb59-77"></a><span class="fu">rownames</span>(metagenes_0<span class="fl">.2</span>) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(bambu_0<span class="fl">.2</span>)</span>
+<span id="cb59-78"><a href="#cb59-78"></a>bambu_0<span class="fl">.2</span> <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span>[<span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb59-79"><a href="#cb59-79"></a></span>
+<span id="cb59-80"><a href="#cb59-80"></a></span>
+<span id="cb59-81"><a href="#cb59-81"></a><span class="co"># sample meta data</span></span>
+<span id="cb59-82"><a href="#cb59-82"></a>condition <span class="ot">&lt;-</span></span>
+<span id="cb59-83"><a href="#cb59-83"></a>  <span class="fu">unlist</span>(<span class="fu">strsplit</span>(<span class="fu">colnames</span>(bambu_0<span class="fl">.025</span>), <span class="at">split =</span> <span class="st">&quot;.aligned.sorted&quot;</span>))</span>
+<span id="cb59-84"><a href="#cb59-84"></a></span>
+<span id="cb59-85"><a href="#cb59-85"></a>metadata <span class="ot">&lt;-</span></span>
+<span id="cb59-86"><a href="#cb59-86"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb59-87"><a href="#cb59-87"></a>    <span class="at">sampleID =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">11</span>),</span>
+<span id="cb59-88"><a href="#cb59-88"></a>    <span class="at">condition =</span> condition,</span>
+<span id="cb59-89"><a href="#cb59-89"></a>    <span class="at">time =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">5</span>)</span>
+<span id="cb59-90"><a href="#cb59-90"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="sum-up-to-gene-level" class="level3">
 <h3 class="anchored" data-anchor-id="sum-up-to-gene-level">Sum up to gene level</h3>
+<section id="counts-3" class="level4">
+<h4 class="anchored" data-anchor-id="counts-3">Counts</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1"></a><span class="co"># Bambu 0.025</span></span>
-<span id="cb32-2"><a href="#cb32-2"></a>bambu_0<span class="fl">.025</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span></span>
-<span id="cb32-3"><a href="#cb32-3"></a>bambu_0<span class="fl">.025</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.025</span><span class="sc">$</span>gene_id</span>
-<span id="cb32-4"><a href="#cb32-4"></a>bambu_0<span class="fl">.025</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span>_gene <span class="sc">%&gt;%</span></span>
-<span id="cb32-5"><a href="#cb32-5"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
-<span id="cb32-6"><a href="#cb32-6"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
-<span id="cb32-7"><a href="#cb32-7"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
-<span id="cb32-8"><a href="#cb32-8"></a></span>
-<span id="cb32-9"><a href="#cb32-9"></a><span class="co"># Salmon 0.025</span></span>
-<span id="cb32-10"><a href="#cb32-10"></a>salmon_0<span class="fl">.025</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span></span>
-<span id="cb32-11"><a href="#cb32-11"></a>salmon_0<span class="fl">.025</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.025</span><span class="sc">$</span>gene_id</span>
-<span id="cb32-12"><a href="#cb32-12"></a>salmon_0<span class="fl">.025</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span>_gene <span class="sc">%&gt;%</span></span>
-<span id="cb32-13"><a href="#cb32-13"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
-<span id="cb32-14"><a href="#cb32-14"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
-<span id="cb32-15"><a href="#cb32-15"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
-<span id="cb32-16"><a href="#cb32-16"></a></span>
-<span id="cb32-17"><a href="#cb32-17"></a><span class="co"># Bambu 0.05</span></span>
-<span id="cb32-18"><a href="#cb32-18"></a>bambu_0<span class="fl">.05</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span></span>
-<span id="cb32-19"><a href="#cb32-19"></a>bambu_0<span class="fl">.05</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.05</span><span class="sc">$</span>gene_id</span>
-<span id="cb32-20"><a href="#cb32-20"></a>bambu_0<span class="fl">.05</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span>_gene <span class="sc">%&gt;%</span></span>
-<span id="cb32-21"><a href="#cb32-21"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
-<span id="cb32-22"><a href="#cb32-22"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
-<span id="cb32-23"><a href="#cb32-23"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
-<span id="cb32-24"><a href="#cb32-24"></a></span>
-<span id="cb32-25"><a href="#cb32-25"></a><span class="co"># Salmon 0.05</span></span>
-<span id="cb32-26"><a href="#cb32-26"></a>salmon_0<span class="fl">.05</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span></span>
-<span id="cb32-27"><a href="#cb32-27"></a>salmon_0<span class="fl">.05</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.05</span><span class="sc">$</span>gene_id</span>
-<span id="cb32-28"><a href="#cb32-28"></a>salmon_0<span class="fl">.05</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span>_gene <span class="sc">%&gt;%</span></span>
-<span id="cb32-29"><a href="#cb32-29"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
-<span id="cb32-30"><a href="#cb32-30"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
-<span id="cb32-31"><a href="#cb32-31"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
-<span id="cb32-32"><a href="#cb32-32"></a></span>
-<span id="cb32-33"><a href="#cb32-33"></a><span class="co"># Bambu 0.1</span></span>
-<span id="cb32-34"><a href="#cb32-34"></a>bambu_0<span class="fl">.1</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span></span>
-<span id="cb32-35"><a href="#cb32-35"></a>bambu_0<span class="fl">.1</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.1</span><span class="sc">$</span>gene_id</span>
-<span id="cb32-36"><a href="#cb32-36"></a>bambu_0<span class="fl">.1</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span>_gene <span class="sc">%&gt;%</span></span>
-<span id="cb32-37"><a href="#cb32-37"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
-<span id="cb32-38"><a href="#cb32-38"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
-<span id="cb32-39"><a href="#cb32-39"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
-<span id="cb32-40"><a href="#cb32-40"></a></span>
-<span id="cb32-41"><a href="#cb32-41"></a><span class="co"># Salmon 0.1</span></span>
-<span id="cb32-42"><a href="#cb32-42"></a>salmon_0<span class="fl">.1</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span></span>
-<span id="cb32-43"><a href="#cb32-43"></a>salmon_0<span class="fl">.1</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.1</span><span class="sc">$</span>gene_id</span>
-<span id="cb32-44"><a href="#cb32-44"></a>salmon_0<span class="fl">.1</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span>_gene <span class="sc">%&gt;%</span></span>
-<span id="cb32-45"><a href="#cb32-45"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
-<span id="cb32-46"><a href="#cb32-46"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
-<span id="cb32-47"><a href="#cb32-47"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
-<span id="cb32-48"><a href="#cb32-48"></a></span>
-<span id="cb32-49"><a href="#cb32-49"></a><span class="co"># Bambu 0.2</span></span>
-<span id="cb32-50"><a href="#cb32-50"></a>bambu_0<span class="fl">.2</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span></span>
-<span id="cb32-51"><a href="#cb32-51"></a>bambu_0<span class="fl">.2</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.2</span><span class="sc">$</span>gene_id</span>
-<span id="cb32-52"><a href="#cb32-52"></a>bambu_0<span class="fl">.2</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span>_gene <span class="sc">%&gt;%</span></span>
-<span id="cb32-53"><a href="#cb32-53"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
-<span id="cb32-54"><a href="#cb32-54"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
-<span id="cb32-55"><a href="#cb32-55"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
-<span id="cb32-56"><a href="#cb32-56"></a></span>
-<span id="cb32-57"><a href="#cb32-57"></a><span class="co"># Salmon 0.2</span></span>
-<span id="cb32-58"><a href="#cb32-58"></a>salmon_0<span class="fl">.2</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span></span>
-<span id="cb32-59"><a href="#cb32-59"></a>salmon_0<span class="fl">.2</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.2</span><span class="sc">$</span>gene_id</span>
-<span id="cb32-60"><a href="#cb32-60"></a>salmon_0<span class="fl">.2</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span>_gene <span class="sc">%&gt;%</span></span>
-<span id="cb32-61"><a href="#cb32-61"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
-<span id="cb32-62"><a href="#cb32-62"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
-<span id="cb32-63"><a href="#cb32-63"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1"></a><span class="co"># Bambu 0.025</span></span>
+<span id="cb60-2"><a href="#cb60-2"></a>bambu_0<span class="fl">.025</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span></span>
+<span id="cb60-3"><a href="#cb60-3"></a>bambu_0<span class="fl">.025</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.025</span><span class="sc">$</span>gene_id</span>
+<span id="cb60-4"><a href="#cb60-4"></a>bambu_0<span class="fl">.025</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span>_gene <span class="sc">%&gt;%</span></span>
+<span id="cb60-5"><a href="#cb60-5"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb60-6"><a href="#cb60-6"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-7"><a href="#cb60-7"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb60-8"><a href="#cb60-8"></a></span>
+<span id="cb60-9"><a href="#cb60-9"></a><span class="co"># Salmon 0.025</span></span>
+<span id="cb60-10"><a href="#cb60-10"></a>salmon_0<span class="fl">.025</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span></span>
+<span id="cb60-11"><a href="#cb60-11"></a>salmon_0<span class="fl">.025</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.025</span><span class="sc">$</span>gene_id</span>
+<span id="cb60-12"><a href="#cb60-12"></a>salmon_0<span class="fl">.025</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span>_gene <span class="sc">%&gt;%</span></span>
+<span id="cb60-13"><a href="#cb60-13"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb60-14"><a href="#cb60-14"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-15"><a href="#cb60-15"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb60-16"><a href="#cb60-16"></a></span>
+<span id="cb60-17"><a href="#cb60-17"></a><span class="co"># Bambu 0.05</span></span>
+<span id="cb60-18"><a href="#cb60-18"></a>bambu_0<span class="fl">.05</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span></span>
+<span id="cb60-19"><a href="#cb60-19"></a>bambu_0<span class="fl">.05</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.05</span><span class="sc">$</span>gene_id</span>
+<span id="cb60-20"><a href="#cb60-20"></a>bambu_0<span class="fl">.05</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span>_gene <span class="sc">%&gt;%</span></span>
+<span id="cb60-21"><a href="#cb60-21"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb60-22"><a href="#cb60-22"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-23"><a href="#cb60-23"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb60-24"><a href="#cb60-24"></a></span>
+<span id="cb60-25"><a href="#cb60-25"></a><span class="co"># Salmon 0.05</span></span>
+<span id="cb60-26"><a href="#cb60-26"></a>salmon_0<span class="fl">.05</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span></span>
+<span id="cb60-27"><a href="#cb60-27"></a>salmon_0<span class="fl">.05</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.05</span><span class="sc">$</span>gene_id</span>
+<span id="cb60-28"><a href="#cb60-28"></a>salmon_0<span class="fl">.05</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span>_gene <span class="sc">%&gt;%</span></span>
+<span id="cb60-29"><a href="#cb60-29"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb60-30"><a href="#cb60-30"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-31"><a href="#cb60-31"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb60-32"><a href="#cb60-32"></a></span>
+<span id="cb60-33"><a href="#cb60-33"></a><span class="co"># Bambu 0.1</span></span>
+<span id="cb60-34"><a href="#cb60-34"></a>bambu_0<span class="fl">.1</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span></span>
+<span id="cb60-35"><a href="#cb60-35"></a>bambu_0<span class="fl">.1</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.1</span><span class="sc">$</span>gene_id</span>
+<span id="cb60-36"><a href="#cb60-36"></a>bambu_0<span class="fl">.1</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span>_gene <span class="sc">%&gt;%</span></span>
+<span id="cb60-37"><a href="#cb60-37"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb60-38"><a href="#cb60-38"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-39"><a href="#cb60-39"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb60-40"><a href="#cb60-40"></a></span>
+<span id="cb60-41"><a href="#cb60-41"></a><span class="co"># Salmon 0.1</span></span>
+<span id="cb60-42"><a href="#cb60-42"></a>salmon_0<span class="fl">.1</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span></span>
+<span id="cb60-43"><a href="#cb60-43"></a>salmon_0<span class="fl">.1</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.1</span><span class="sc">$</span>gene_id</span>
+<span id="cb60-44"><a href="#cb60-44"></a>salmon_0<span class="fl">.1</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span>_gene <span class="sc">%&gt;%</span></span>
+<span id="cb60-45"><a href="#cb60-45"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb60-46"><a href="#cb60-46"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-47"><a href="#cb60-47"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb60-48"><a href="#cb60-48"></a></span>
+<span id="cb60-49"><a href="#cb60-49"></a><span class="co"># Bambu 0.2</span></span>
+<span id="cb60-50"><a href="#cb60-50"></a>bambu_0<span class="fl">.2</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span></span>
+<span id="cb60-51"><a href="#cb60-51"></a>bambu_0<span class="fl">.2</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.2</span><span class="sc">$</span>gene_id</span>
+<span id="cb60-52"><a href="#cb60-52"></a>bambu_0<span class="fl">.2</span>_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span>_gene <span class="sc">%&gt;%</span></span>
+<span id="cb60-53"><a href="#cb60-53"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb60-54"><a href="#cb60-54"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-55"><a href="#cb60-55"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb60-56"><a href="#cb60-56"></a></span>
+<span id="cb60-57"><a href="#cb60-57"></a><span class="co"># Salmon 0.2</span></span>
+<span id="cb60-58"><a href="#cb60-58"></a>salmon_0<span class="fl">.2</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span></span>
+<span id="cb60-59"><a href="#cb60-59"></a>salmon_0<span class="fl">.2</span>_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.2</span><span class="sc">$</span>gene_id</span>
+<span id="cb60-60"><a href="#cb60-60"></a>salmon_0<span class="fl">.2</span>_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span>_gene <span class="sc">%&gt;%</span></span>
+<span id="cb60-61"><a href="#cb60-61"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb60-62"><a href="#cb60-62"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-63"><a href="#cb60-63"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.025</span>_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.025</span>_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.025</span>_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.025</span>_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE TRUE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.05</span>_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.05</span>_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.05</span>_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.05</span>_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE TRUE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.1</span>_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.1</span>_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.1</span>_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.1</span>_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE TRUE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.2</span>_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.2</span>_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.2</span>_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.2</span>_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE TRUE</code></pre>
 </div>
 </div>
+</section>
+<section id="tpm-3" class="level4">
+<h4 class="anchored" data-anchor-id="tpm-3">TPM</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1"></a><span class="co"># Bambu 0.025</span></span>
+<span id="cb69-2"><a href="#cb69-2"></a>bambu_0<span class="fl">.025</span>_tpm_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span>_tpm</span>
+<span id="cb69-3"><a href="#cb69-3"></a>bambu_0<span class="fl">.025</span>_tpm_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.025</span><span class="sc">$</span>gene_id</span>
+<span id="cb69-4"><a href="#cb69-4"></a>bambu_0<span class="fl">.025</span>_tpm_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.025</span>_tpm_gene <span class="sc">%&gt;%</span></span>
+<span id="cb69-5"><a href="#cb69-5"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb69-6"><a href="#cb69-6"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb69-7"><a href="#cb69-7"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb69-8"><a href="#cb69-8"></a></span>
+<span id="cb69-9"><a href="#cb69-9"></a><span class="co"># Salmon 0.025</span></span>
+<span id="cb69-10"><a href="#cb69-10"></a>salmon_0<span class="fl">.025</span>_tpm_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span>_tpm</span>
+<span id="cb69-11"><a href="#cb69-11"></a>salmon_0<span class="fl">.025</span>_tpm_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.025</span><span class="sc">$</span>gene_id</span>
+<span id="cb69-12"><a href="#cb69-12"></a>salmon_0<span class="fl">.025</span>_tpm_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.025</span>_tpm_gene <span class="sc">%&gt;%</span></span>
+<span id="cb69-13"><a href="#cb69-13"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb69-14"><a href="#cb69-14"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb69-15"><a href="#cb69-15"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb69-16"><a href="#cb69-16"></a></span>
+<span id="cb69-17"><a href="#cb69-17"></a><span class="co"># Bambu 0.05</span></span>
+<span id="cb69-18"><a href="#cb69-18"></a>bambu_0<span class="fl">.05</span>_tpm_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span>_tpm</span>
+<span id="cb69-19"><a href="#cb69-19"></a>bambu_0<span class="fl">.05</span>_tpm_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.05</span><span class="sc">$</span>gene_id</span>
+<span id="cb69-20"><a href="#cb69-20"></a>bambu_0<span class="fl">.05</span>_tpm_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.05</span>_tpm_gene <span class="sc">%&gt;%</span></span>
+<span id="cb69-21"><a href="#cb69-21"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb69-22"><a href="#cb69-22"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb69-23"><a href="#cb69-23"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb69-24"><a href="#cb69-24"></a></span>
+<span id="cb69-25"><a href="#cb69-25"></a><span class="co"># Salmon 0.05</span></span>
+<span id="cb69-26"><a href="#cb69-26"></a>salmon_0<span class="fl">.05</span>_tpm_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span>_tpm</span>
+<span id="cb69-27"><a href="#cb69-27"></a>salmon_0<span class="fl">.05</span>_tpm_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.05</span><span class="sc">$</span>gene_id</span>
+<span id="cb69-28"><a href="#cb69-28"></a>salmon_0<span class="fl">.05</span>_tpm_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.05</span>_tpm_gene <span class="sc">%&gt;%</span></span>
+<span id="cb69-29"><a href="#cb69-29"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb69-30"><a href="#cb69-30"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb69-31"><a href="#cb69-31"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb69-32"><a href="#cb69-32"></a></span>
+<span id="cb69-33"><a href="#cb69-33"></a><span class="co"># Bambu 0.1</span></span>
+<span id="cb69-34"><a href="#cb69-34"></a>bambu_0<span class="fl">.1</span>_tpm_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span>_tpm</span>
+<span id="cb69-35"><a href="#cb69-35"></a>bambu_0<span class="fl">.1</span>_tpm_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.1</span><span class="sc">$</span>gene_id</span>
+<span id="cb69-36"><a href="#cb69-36"></a>bambu_0<span class="fl">.1</span>_tpm_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.1</span>_tpm_gene <span class="sc">%&gt;%</span></span>
+<span id="cb69-37"><a href="#cb69-37"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb69-38"><a href="#cb69-38"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb69-39"><a href="#cb69-39"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb69-40"><a href="#cb69-40"></a></span>
+<span id="cb69-41"><a href="#cb69-41"></a><span class="co"># Salmon 0.1</span></span>
+<span id="cb69-42"><a href="#cb69-42"></a>salmon_0<span class="fl">.1</span>_tpm_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span>_tpm</span>
+<span id="cb69-43"><a href="#cb69-43"></a>salmon_0<span class="fl">.1</span>_tpm_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.1</span><span class="sc">$</span>gene_id</span>
+<span id="cb69-44"><a href="#cb69-44"></a>salmon_0<span class="fl">.1</span>_tpm_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.1</span>_tpm_gene <span class="sc">%&gt;%</span></span>
+<span id="cb69-45"><a href="#cb69-45"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb69-46"><a href="#cb69-46"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb69-47"><a href="#cb69-47"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb69-48"><a href="#cb69-48"></a></span>
+<span id="cb69-49"><a href="#cb69-49"></a><span class="co"># Bambu 0.2</span></span>
+<span id="cb69-50"><a href="#cb69-50"></a>bambu_0<span class="fl">.2</span>_tpm_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span>_tpm</span>
+<span id="cb69-51"><a href="#cb69-51"></a>bambu_0<span class="fl">.2</span>_tpm_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.2</span><span class="sc">$</span>gene_id</span>
+<span id="cb69-52"><a href="#cb69-52"></a>bambu_0<span class="fl">.2</span>_tpm_gene <span class="ot">&lt;-</span> bambu_0<span class="fl">.2</span>_tpm_gene <span class="sc">%&gt;%</span></span>
+<span id="cb69-53"><a href="#cb69-53"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb69-54"><a href="#cb69-54"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb69-55"><a href="#cb69-55"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span>
+<span id="cb69-56"><a href="#cb69-56"></a></span>
+<span id="cb69-57"><a href="#cb69-57"></a><span class="co"># Salmon 0.2</span></span>
+<span id="cb69-58"><a href="#cb69-58"></a>salmon_0<span class="fl">.2</span>_tpm_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span>_tpm</span>
+<span id="cb69-59"><a href="#cb69-59"></a>salmon_0<span class="fl">.2</span>_tpm_gene<span class="sc">$</span>gene_id <span class="ot">&lt;-</span> metagenes_0<span class="fl">.2</span><span class="sc">$</span>gene_id</span>
+<span id="cb69-60"><a href="#cb69-60"></a>salmon_0<span class="fl">.2</span>_tpm_gene <span class="ot">&lt;-</span> salmon_0<span class="fl">.2</span>_tpm_gene <span class="sc">%&gt;%</span></span>
+<span id="cb69-61"><a href="#cb69-61"></a>  <span class="fu">group_by</span>(gene_id) <span class="sc">%&gt;%</span></span>
+<span id="cb69-62"><a href="#cb69-62"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), sum)) <span class="sc">%&gt;%</span></span>
+<span id="cb69-63"><a href="#cb69-63"></a>  <span class="fu">column_to_rownames</span>(<span class="st">&quot;gene_id&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.025</span>_tpm_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.025</span>_tpm_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.05</span>_tpm_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.05</span>_tpm_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.1</span>_tpm_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.1</span>_tpm_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1"></a><span class="fu">dim</span>(salmon_0<span class="fl">.2</span>_tpm_gene) <span class="sc">==</span> <span class="fu">dim</span>(bambu_0<span class="fl">.2</span>_tpm_gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE</code></pre>
+</div>
+</div>
+</section>
 </section>
 </section>
 <section id="export-data-frames" class="level2">
 <h2 class="anchored" data-anchor-id="export-data-frames">Export data frames</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1"></a><span class="co"># Bambu data frames</span></span>
-<span id="cb41-2"><a href="#cb41-2"></a>df_list_bambu <span class="ot">&lt;-</span></span>
-<span id="cb41-3"><a href="#cb41-3"></a>  <span class="fu">list</span>(</span>
-<span id="cb41-4"><a href="#cb41-4"></a>    <span class="at">bambu_0.025 =</span> bambu_0<span class="fl">.025</span>,</span>
-<span id="cb41-5"><a href="#cb41-5"></a>    <span class="at">bambu_0.025_ctrl =</span> bambu_0<span class="fl">.025</span>_ctrl,</span>
-<span id="cb41-6"><a href="#cb41-6"></a>    <span class="at">bambu_0.025_gene =</span> bambu_0<span class="fl">.025</span>_gene,</span>
-<span id="cb41-7"><a href="#cb41-7"></a>    <span class="at">bambu_0.05 =</span> bambu_0<span class="fl">.05</span>,</span>
-<span id="cb41-8"><a href="#cb41-8"></a>    <span class="at">bambu_0.05_ctrl =</span> bambu_0<span class="fl">.05</span>_ctrl,</span>
-<span id="cb41-9"><a href="#cb41-9"></a>    <span class="at">bambu_0.05_gene =</span> bambu_0<span class="fl">.05</span>_gene,</span>
-<span id="cb41-10"><a href="#cb41-10"></a>    <span class="at">bambu_0.1 =</span> bambu_0<span class="fl">.1</span>,</span>
-<span id="cb41-11"><a href="#cb41-11"></a>    <span class="at">bambu_0.1_ctrl =</span> bambu_0<span class="fl">.1</span>_ctrl,</span>
-<span id="cb41-12"><a href="#cb41-12"></a>    <span class="at">bambu_0.1_gene =</span> bambu_0<span class="fl">.1</span>_gene,</span>
-<span id="cb41-13"><a href="#cb41-13"></a>    <span class="at">bambu_0.2 =</span> bambu_0<span class="fl">.2</span>,</span>
-<span id="cb41-14"><a href="#cb41-14"></a>    <span class="at">bambu_0.2_ctrl =</span> bambu_0<span class="fl">.2</span>_ctrl,</span>
-<span id="cb41-15"><a href="#cb41-15"></a>    <span class="at">bambu_0.2_gene =</span> bambu_0<span class="fl">.2</span>_gene</span>
-<span id="cb41-16"><a href="#cb41-16"></a>  )</span>
-<span id="cb41-17"><a href="#cb41-17"></a></span>
-<span id="cb41-18"><a href="#cb41-18"></a><span class="co"># Salmon data frames</span></span>
-<span id="cb41-19"><a href="#cb41-19"></a>df_list_salmon <span class="ot">&lt;-</span></span>
-<span id="cb41-20"><a href="#cb41-20"></a>  <span class="fu">list</span>(</span>
-<span id="cb41-21"><a href="#cb41-21"></a>    <span class="at">salmon_0.025 =</span> salmon_0<span class="fl">.025</span>,</span>
-<span id="cb41-22"><a href="#cb41-22"></a>    <span class="at">salmon_0.025_ctrl =</span> salmon_0<span class="fl">.025</span>_ctrl,</span>
-<span id="cb41-23"><a href="#cb41-23"></a>    <span class="at">salmon_0.025_gene =</span> salmon_0<span class="fl">.025</span>_gene,</span>
-<span id="cb41-24"><a href="#cb41-24"></a>    <span class="at">salmon_0.05 =</span> salmon_0<span class="fl">.05</span>,</span>
-<span id="cb41-25"><a href="#cb41-25"></a>    <span class="at">salmon_0.05_ctrl =</span> salmon_0<span class="fl">.05</span>_ctrl,</span>
-<span id="cb41-26"><a href="#cb41-26"></a>    <span class="at">salmon_0.05_gene =</span> salmon_0<span class="fl">.05</span>_gene,</span>
-<span id="cb41-27"><a href="#cb41-27"></a>    <span class="at">salmon_0.1 =</span> salmon_0<span class="fl">.1</span>,</span>
-<span id="cb41-28"><a href="#cb41-28"></a>    <span class="at">salmon_0.1_ctrl =</span> salmon_0<span class="fl">.1</span>_ctrl,</span>
-<span id="cb41-29"><a href="#cb41-29"></a>    <span class="at">salmon_0.2 =</span> salmon_0<span class="fl">.2</span>,</span>
-<span id="cb41-30"><a href="#cb41-30"></a>    <span class="at">salmon_0.2_ctrl =</span> salmon_0<span class="fl">.2</span>_ctrl,</span>
-<span id="cb41-31"><a href="#cb41-31"></a>    <span class="at">salmon_0.2_gene =</span> salmon_0<span class="fl">.2</span>_gene</span>
-<span id="cb41-32"><a href="#cb41-32"></a>  )</span>
-<span id="cb41-33"><a href="#cb41-33"></a></span>
-<span id="cb41-34"><a href="#cb41-34"></a><span class="co"># meta data frames</span></span>
-<span id="cb41-35"><a href="#cb41-35"></a>df_list_meta <span class="ot">&lt;-</span></span>
-<span id="cb41-36"><a href="#cb41-36"></a>  <span class="fu">list</span>(</span>
-<span id="cb41-37"><a href="#cb41-37"></a>    <span class="at">metadata =</span> metadata,</span>
-<span id="cb41-38"><a href="#cb41-38"></a>    <span class="at">metagenes_0.025 =</span> metagenes_0<span class="fl">.025</span>,</span>
-<span id="cb41-39"><a href="#cb41-39"></a>    <span class="at">metagenes_0.05 =</span> metagenes_0<span class="fl">.05</span>,</span>
-<span id="cb41-40"><a href="#cb41-40"></a>    <span class="at">metagenes_0.1 =</span> metagenes_0<span class="fl">.1</span>,</span>
-<span id="cb41-41"><a href="#cb41-41"></a>    <span class="at">metagenes_0.2 =</span> metagenes_0<span class="fl">.2</span>,</span>
-<span id="cb41-42"><a href="#cb41-42"></a>    <span class="at">metatranscript_0.025 =</span> metatranscript_0<span class="fl">.025</span>,</span>
-<span id="cb41-43"><a href="#cb41-43"></a>    <span class="at">metatranscript_0.05 =</span> metatranscript_0<span class="fl">.05</span>,</span>
-<span id="cb41-44"><a href="#cb41-44"></a>    <span class="at">metatranscript_0.1 =</span> metatranscript_0<span class="fl">.1</span>,</span>
-<span id="cb41-45"><a href="#cb41-45"></a>    <span class="at">metatranscript_0.2 =</span> metatranscript_0<span class="fl">.2</span></span>
-<span id="cb41-46"><a href="#cb41-46"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1"></a><span class="co"># Bambu data frames</span></span>
+<span id="cb78-2"><a href="#cb78-2"></a>df_list_bambu <span class="ot">&lt;-</span></span>
+<span id="cb78-3"><a href="#cb78-3"></a>  <span class="fu">list</span>(</span>
+<span id="cb78-4"><a href="#cb78-4"></a>    <span class="at">bambu_0.025 =</span> bambu_0<span class="fl">.025</span>,</span>
+<span id="cb78-5"><a href="#cb78-5"></a>    <span class="at">bambu_0.025_ctrl =</span> bambu_0<span class="fl">.025</span>_ctrl,</span>
+<span id="cb78-6"><a href="#cb78-6"></a>    <span class="at">bambu_0.025_gene =</span> bambu_0<span class="fl">.025</span>_gene,</span>
+<span id="cb78-7"><a href="#cb78-7"></a>    <span class="at">bambu_0.025_tpm =</span> bambu_0<span class="fl">.025</span>_tpm,</span>
+<span id="cb78-8"><a href="#cb78-8"></a>    <span class="at">bambu_0.025_tpm_ctrl =</span> bambu_0<span class="fl">.025</span>_tpm_ctrl,</span>
+<span id="cb78-9"><a href="#cb78-9"></a>    <span class="at">bambu_0.025_tpm_gene =</span> bambu_0<span class="fl">.025</span>_tpm_gene,</span>
+<span id="cb78-10"><a href="#cb78-10"></a>    <span class="at">bambu_0.05 =</span> bambu_0<span class="fl">.05</span>,</span>
+<span id="cb78-11"><a href="#cb78-11"></a>    <span class="at">bambu_0.05_ctrl =</span> bambu_0<span class="fl">.05</span>_ctrl,</span>
+<span id="cb78-12"><a href="#cb78-12"></a>    <span class="at">bambu_0.05_gene =</span> bambu_0<span class="fl">.05</span>_gene,</span>
+<span id="cb78-13"><a href="#cb78-13"></a>    <span class="at">bambu_0.05_tpm =</span> bambu_0<span class="fl">.05</span>_tpm,</span>
+<span id="cb78-14"><a href="#cb78-14"></a>    <span class="at">bambu_0.05_tpm_ctrl =</span> bambu_0<span class="fl">.05</span>_tpm_ctrl,</span>
+<span id="cb78-15"><a href="#cb78-15"></a>    <span class="at">bambu_0.05_tpm_gene =</span> bambu_0<span class="fl">.05</span>_tpm_gene,</span>
+<span id="cb78-16"><a href="#cb78-16"></a>    <span class="at">bambu_0.1 =</span> bambu_0<span class="fl">.1</span>,</span>
+<span id="cb78-17"><a href="#cb78-17"></a>    <span class="at">bambu_0.1_ctrl =</span> bambu_0<span class="fl">.1</span>_ctrl,</span>
+<span id="cb78-18"><a href="#cb78-18"></a>    <span class="at">bambu_0.1_gene =</span> bambu_0<span class="fl">.1</span>_gene,</span>
+<span id="cb78-19"><a href="#cb78-19"></a>    <span class="at">bambu_0.1_tpm =</span> bambu_0<span class="fl">.1</span>_tpm,</span>
+<span id="cb78-20"><a href="#cb78-20"></a>    <span class="at">bambu_0.1_tpm_ctrl =</span> bambu_0<span class="fl">.1</span>_tpm_ctrl,</span>
+<span id="cb78-21"><a href="#cb78-21"></a>    <span class="at">bambu_0.1_tpm_gene =</span> bambu_0<span class="fl">.1</span>_tpm_gene,</span>
+<span id="cb78-22"><a href="#cb78-22"></a>    <span class="at">bambu_0.2 =</span> bambu_0<span class="fl">.2</span>,</span>
+<span id="cb78-23"><a href="#cb78-23"></a>    <span class="at">bambu_0.2_ctrl =</span> bambu_0<span class="fl">.2</span>_ctrl,</span>
+<span id="cb78-24"><a href="#cb78-24"></a>    <span class="at">bambu_0.2_gene =</span> bambu_0<span class="fl">.2</span>_gene,</span>
+<span id="cb78-25"><a href="#cb78-25"></a>    <span class="at">bambu_0.2_tpm =</span> bambu_0<span class="fl">.2</span>_tpm,</span>
+<span id="cb78-26"><a href="#cb78-26"></a>    <span class="at">bambu_0.2_tpm_ctrl =</span> bambu_0<span class="fl">.2</span>_tpm_ctrl,</span>
+<span id="cb78-27"><a href="#cb78-27"></a>    <span class="at">bambu_0.2_tpm_gene =</span> bambu_0<span class="fl">.2</span>_tpm_gene</span>
+<span id="cb78-28"><a href="#cb78-28"></a>  )</span>
+<span id="cb78-29"><a href="#cb78-29"></a></span>
+<span id="cb78-30"><a href="#cb78-30"></a><span class="co"># Salmon data frames</span></span>
+<span id="cb78-31"><a href="#cb78-31"></a>df_list_salmon <span class="ot">&lt;-</span></span>
+<span id="cb78-32"><a href="#cb78-32"></a>  <span class="fu">list</span>(</span>
+<span id="cb78-33"><a href="#cb78-33"></a>    <span class="at">salmon_0.025 =</span> salmon_0<span class="fl">.025</span>,</span>
+<span id="cb78-34"><a href="#cb78-34"></a>    <span class="at">salmon_0.025_ctrl =</span> salmon_0<span class="fl">.025</span>_ctrl,</span>
+<span id="cb78-35"><a href="#cb78-35"></a>    <span class="at">salmon_0.025_gene =</span> salmon_0<span class="fl">.025</span>_gene,</span>
+<span id="cb78-36"><a href="#cb78-36"></a>    <span class="at">salmon_0.025_tpm =</span> salmon_0<span class="fl">.025</span>_tpm,</span>
+<span id="cb78-37"><a href="#cb78-37"></a>    <span class="at">salmon_0.025_tpm_ctrl =</span> salmon_0<span class="fl">.025</span>_tpm_ctrl,</span>
+<span id="cb78-38"><a href="#cb78-38"></a>    <span class="at">salmon_0.025_tpm_gene =</span> salmon_0<span class="fl">.025</span>_tpm_gene,</span>
+<span id="cb78-39"><a href="#cb78-39"></a>    <span class="at">salmon_0.05 =</span> salmon_0<span class="fl">.05</span>,</span>
+<span id="cb78-40"><a href="#cb78-40"></a>    <span class="at">salmon_0.05_ctrl =</span> salmon_0<span class="fl">.05</span>_ctrl,</span>
+<span id="cb78-41"><a href="#cb78-41"></a>    <span class="at">salmon_0.05_gene =</span> salmon_0<span class="fl">.05</span>_gene,</span>
+<span id="cb78-42"><a href="#cb78-42"></a>    <span class="at">salmon_0.05_tpm =</span> salmon_0<span class="fl">.05</span>_tpm,</span>
+<span id="cb78-43"><a href="#cb78-43"></a>    <span class="at">salmon_0.05_tpm_ctrl =</span> salmon_0<span class="fl">.05</span>_tpm_ctrl,</span>
+<span id="cb78-44"><a href="#cb78-44"></a>    <span class="at">salmon_0.05_tpm_gene =</span> salmon_0<span class="fl">.05</span>_tpm_gene,</span>
+<span id="cb78-45"><a href="#cb78-45"></a>    <span class="at">salmon_0.1 =</span> salmon_0<span class="fl">.1</span>,</span>
+<span id="cb78-46"><a href="#cb78-46"></a>    <span class="at">salmon_0.1_ctrl =</span> salmon_0<span class="fl">.1</span>_ctrl,</span>
+<span id="cb78-47"><a href="#cb78-47"></a>    <span class="at">salmon_0.1_gene =</span> salmon_0<span class="fl">.1</span>_gene,</span>
+<span id="cb78-48"><a href="#cb78-48"></a>    <span class="at">salmon_0.1_tpm =</span> salmon_0<span class="fl">.1</span>_tpm,</span>
+<span id="cb78-49"><a href="#cb78-49"></a>    <span class="at">salmon_0.1_tpm_ctrl =</span> salmon_0<span class="fl">.1</span>_tpm_ctrl,</span>
+<span id="cb78-50"><a href="#cb78-50"></a>    <span class="at">salmon_0.1_tpm_gene =</span> salmon_0<span class="fl">.1</span>_tpm_gene,</span>
+<span id="cb78-51"><a href="#cb78-51"></a>    <span class="at">salmon_0.2 =</span> salmon_0<span class="fl">.2</span>,</span>
+<span id="cb78-52"><a href="#cb78-52"></a>    <span class="at">salmon_0.2_ctrl =</span> salmon_0<span class="fl">.2</span>_ctrl,</span>
+<span id="cb78-53"><a href="#cb78-53"></a>    <span class="at">salmon_0.2_gene =</span> salmon_0<span class="fl">.2</span>_gene,</span>
+<span id="cb78-54"><a href="#cb78-54"></a>    <span class="at">salmon_0.2_tpm =</span> salmon_0<span class="fl">.2</span>_tpm,</span>
+<span id="cb78-55"><a href="#cb78-55"></a>    <span class="at">salmon_0.2_tpm_ctrl =</span> salmon_0<span class="fl">.2</span>_tpm_ctrl,</span>
+<span id="cb78-56"><a href="#cb78-56"></a>    <span class="at">salmon_0.2_tpm_gene =</span> salmon_0<span class="fl">.2</span>_tpm_gene</span>
+<span id="cb78-57"><a href="#cb78-57"></a>  )</span>
+<span id="cb78-58"><a href="#cb78-58"></a></span>
+<span id="cb78-59"><a href="#cb78-59"></a><span class="co"># meta data frames</span></span>
+<span id="cb78-60"><a href="#cb78-60"></a>df_list_meta <span class="ot">&lt;-</span></span>
+<span id="cb78-61"><a href="#cb78-61"></a>  <span class="fu">list</span>(</span>
+<span id="cb78-62"><a href="#cb78-62"></a>    <span class="at">metadata =</span> metadata,</span>
+<span id="cb78-63"><a href="#cb78-63"></a>    <span class="at">metagenes_0.025 =</span> metagenes_0<span class="fl">.025</span>,</span>
+<span id="cb78-64"><a href="#cb78-64"></a>    <span class="at">metagenes_0.05 =</span> metagenes_0<span class="fl">.05</span>,</span>
+<span id="cb78-65"><a href="#cb78-65"></a>    <span class="at">metagenes_0.1 =</span> metagenes_0<span class="fl">.1</span>,</span>
+<span id="cb78-66"><a href="#cb78-66"></a>    <span class="at">metagenes_0.2 =</span> metagenes_0<span class="fl">.2</span>,</span>
+<span id="cb78-67"><a href="#cb78-67"></a>    <span class="at">metatranscript_0.025 =</span> metatranscript_0<span class="fl">.025</span>,</span>
+<span id="cb78-68"><a href="#cb78-68"></a>    <span class="at">metatranscript_0.05 =</span> metatranscript_0<span class="fl">.05</span>,</span>
+<span id="cb78-69"><a href="#cb78-69"></a>    <span class="at">metatranscript_0.1 =</span> metatranscript_0<span class="fl">.1</span>,</span>
+<span id="cb78-70"><a href="#cb78-70"></a>    <span class="at">metatranscript_0.2 =</span> metatranscript_0<span class="fl">.2</span></span>
+<span id="cb78-71"><a href="#cb78-71"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1"></a><span class="co"># do not save in github directory!!!</span></span>
-<span id="cb42-2"><a href="#cb42-2"></a><span class="fu">saveRDS</span>(df_list_bambu, <span class="at">file =</span> <span class="st">&quot;../bambu.rds&quot;</span>)</span>
-<span id="cb42-3"><a href="#cb42-3"></a><span class="fu">saveRDS</span>(df_list_meta, <span class="at">file =</span> <span class="st">&quot;../meta.rds&quot;</span>)</span>
-<span id="cb42-4"><a href="#cb42-4"></a><span class="fu">saveRDS</span>(df_list_salmon, <span class="at">file =</span> <span class="st">&quot;../salmon.rds&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1"></a><span class="co"># do not save in github directory!!!</span></span>
+<span id="cb79-2"><a href="#cb79-2"></a><span class="fu">saveRDS</span>(df_list_bambu, <span class="at">file =</span> <span class="st">&quot;../bambu.rds&quot;</span>)</span>
+<span id="cb79-3"><a href="#cb79-3"></a><span class="fu">saveRDS</span>(df_list_meta, <span class="at">file =</span> <span class="st">&quot;../meta.rds&quot;</span>)</span>
+<span id="cb79-4"><a href="#cb79-4"></a><span class="fu">saveRDS</span>(df_list_salmon, <span class="at">file =</span> <span class="st">&quot;../salmon.rds&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 

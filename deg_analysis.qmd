@@ -1,5 +1,5 @@
 ---
-title: "Short vs. long RNA-seq (differentiation over timecourse)"
+title: "Short-Long_RNAseq-Differentiation-Timecourse"
 author: "Michel Tarnow"
 date: today
 format: 
@@ -16,11 +16,51 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Load packages
+
+
+To do:
+
+- write outlook
+
+
+
+
+# Differential Gene Expression and Gene Set Analyes
+
+## Methods
+
+The differential gene expression and gene set analyses were performed in RStudio (Posit team (2023), version 2023.6.2.561, R version 4.3.1).
+
+### Differntial Gene Expression Analysis
+
+After importing and processing of the data, as well as an exploratory data analysis, a differential gene expression analysis was conducted. Here the aim was twofold: first, the aim was to identify genes that are differentially expressed over the course of time, so over the course of the 5 days at which samples have been generated; second, the aim was to compare the results of the differential gene expression analysis of the Illumina+Salmon data (short read data) with the results of the PacBio+Bambu data (long read data). To do so, in total 8 different count data frames were analyzed. For each of the 4 NDR cutoffs (0.025, 0.05, 0.1, 0.2), there are two different count data frames, one derived from Illumina+Salmon and one derived from PacBio+Bambu. For the analysis of differentially expressed genes, a standard pipeline from the R package `edgeR` (Robinson *et al*, 2010, R package version 3.42.4) was used. 
+
+First, `DGEList` objects were created from the 8 count data frames and then filtered using the `filterByExpr` function, which determines genes that have large enough counts to be used for the differential expression analysis or other statistical analyses. The function removes genes that do not have a sufficient count in a worthwhile number of samples. Next, scaling factors for the library sizes were computed first using the function `calcNormFactors` to obtain normalized effective library sizes. Following, the function `estimateDisp` was applied on the `DGEList` objects to calculate posterior dispersion estimates. To do so, the following formula was used to create a design matrix: `~ day`, where day specifies the day at which each sample was created, so days 0 to 5. Thus, the design matrix is created in a way that the first time point, day 0, is the baseline (intercept of the model). The next step is to fit a negative binomial generalized log-linear model to each gene. This was done using the function `glmFit`. Finally, a likelihood ratio test was performed using the function `glmLRT`. Here, the full model is compared to a reduced model which has values of zero for all coefficients but the baseline, so for days 1 to 5. For each gene, this computes p-values and other test statistics of the likelihood ratio test that were used afterwards to identify genes that show statistical significant differential expression. To find these genes, the function `decideTests.DGELRT` adjusted the p-values by the Benjamini-Hochberg method (Benjamini and Hochberg, 1995) and then filtered differentially expressed genes by a significance threshold of 0.01.
+
+To compare the results for Illumina+Salmon with the results for PacBio+Bambu, an `UpSetR` (Gehlenborg, 2019, R package version 1.4.0) plot was created for each NDR cutoff. This plot overlayed the genes called differentially expressed for the two different cases. Moreover, the p-values and logFC values (comparing day 0 and day 5) for each gene were compared using simple scatter plots.
+
+Lastly, the differential expression pipeline described above was also applied to all data sets to compare the time points day 0 and day 5 discretely. To do so, the in the likelihood ratio test only the coefficient of day 5 in the reduced model was set to 0. 
+
+### Grouping of Differentially Expressed Genes
+
+After the differential gene expression analysis, the genes identified as differentially expressed were grouped into gene sets of similar genes. For this grouping, only the genes that were identified as differentially expressed by the analysis of both the Illumina+Salmon and the PacBio+Bambu data of the 0.2 NDR cutoff were considered. Moreover, the genes were grouped depending on their Illumina+Salmon counts since these counts were treated as a ground truth to which the PacBio+Bambu counts were compared.
+
+Of these genes, the average expression at each time point was calculated first, so the average of the samples of each time point. Then, all gene-gene Spearman-correlations were computed and *1-correlation* was used as the difference between two genes during hierarchical clustering. The results of the hierarchical clustering were then evaluated to group the genes into clusters. From visual inspection of a cluster dendrogram and a correlation heat map, the number of clusters was set manually. Lastly, the average expression of the genes of the clusters at each time point was calculated for each cluster.
+
+The clusters were then used as gene sets for the following analysis of the functions or pathways that are associated with the genes identified as differentially expressed.
+
+### Gene Set Analysis
+
+To make sense of the genes that were called differentially expressed, they were first grouped into gene sets of similar genes (see above). These gene sets were then used as input for a function and pathway analysis. Here, the frequency-based method DAVID (Sherman *et al*, 2022, <https://david.ncifcrf.gov/home.jsp>) was employed.
+
+The Database for Annotation, Visualization and Integrated Discovery (DAVID) tool is a web tool for functional annotation and enrichment analyses of gene sets, e.g. to find enriched gene ontology terms. To do so, the web tool requires the user to upload not only a list of genes, so the gene set of interest, but also another list of genes, the background. The tool then searches for functional annotations that are statistically overrepresented (enriched) in the gene set of interest compared to the background. Therefore, the choice of background can influence the results of the analysis. Here, the gene sets of interest were the clusters specified during the grouping of the differentially expressed genes and the for the background, all genes after the filtering were used. The only exception to that are genes that were newly discovered during the transcript quantification since these genes do not have a valid ensemble gene id which is necessary for DAVID.
+
+## Results
+
+### Load packages
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
-library(RColorBrewer)
 library(edgeR)
 library(UpSetR)
 library(viridis)
@@ -30,14 +70,14 @@ library(fgsea)
 library(msigdbr)
 ```
 
-## Load data
+### Load data
 
 The data is loaded from RDS-objects that have been created with the `import_processing.qmd` file. For each of the 4 NDR cutoffs (0.025, 0.05, 0.1, 0.2), two data frames exist containing the expression data (counts) of the two different technologies used to obtain the data:
 
 1. Illumina sequencing and Salmon quantification (short read)
 2. PacBio sequencing and Bambu quantification (long read)
 
-In total, this adds up to 8 different data frames. Each of these data frames contains 11 samples, which are replicates from one of five different time points.
+In total, this adds up to 8 different data frames. Each of these data frames contains 11 samples, which are replicates from one of five different time points. Each time point has 1-3 replicates.
 
 ```{r}
 df_list_bambu <- readRDS("../bambu.rds")
@@ -59,7 +99,7 @@ salmon_0.2_gene <- df_list_salmon$salmon_0.2_gene
 (meta_samples <- df_list_meta$metadata)
 ```
 
-## Create DGEList objects and filter expressed genes
+### Create DGEList objects and filter expressed genes
 
 The expression data is then filtered using the function `filterByExpr` to exclude genes that do not show high enough expression or do not show expression in enough samples.
 
@@ -67,7 +107,7 @@ The expression data is then filtered using the function `filterByExpr` to exclud
 day <- factor(meta_samples$time)
 ```
 
-### 0.025
+#### NDR 0.025
 
 ```{r}
 y_salmon_0.025 <- DGEList(counts = salmon_0.025_gene, group = day)
@@ -87,7 +127,7 @@ if (length(not_expressed) > 0) {
 }
 ```
 
-### 0.05
+#### NDR 0.05
 
 ```{r}
 y_salmon_0.05 <- DGEList(counts = salmon_0.05_gene, group = day)
@@ -107,7 +147,7 @@ if (length(not_expressed) > 0) {
 }
 ```
 
-### 0.1
+#### NDR 0.1
 
 ```{r}
 y_salmon_0.1 <- DGEList(counts = salmon_0.1_gene, group = day)
@@ -127,7 +167,7 @@ if (length(not_expressed) > 0) {
 }
 ```
 
-### 0.2
+#### NDR 0.2
 
 ```{r}
 y_salmon_0.2 <- DGEList(counts = salmon_0.2_gene, group = day)
@@ -147,16 +187,16 @@ if (length(not_expressed) > 0) {
 }
 ```
 
-```{r}
+```{r include=FALSE}
 dim(y_salmon_0.025) == dim(y_bambu_0.025)
 dim(y_salmon_0.05) == dim(y_bambu_0.05)
 dim(y_salmon_0.1) == dim(y_bambu_0.1)
 dim(y_salmon_0.2) == dim(y_bambu_0.2)
 ```
 
-## Differential gene expression analysis
+### Differential Gene Expression Analysis
 
-The differential gene expression analysis aims to identify genes that are differentially expressed over the time course. These results are computed for all 4 NDR cufoffs of both technologies, and are then overlayed for each NDR cutoff to compare the two technologies, so the long read and short read sequencing.
+The differential gene expression analysis aims to identify genes that are differentially expressed over the time course. These results are computed for all 4 NDR cutoffs of both technologies, and are then overlayed for each NDR cutoff to compare the two technologies, so the long read and short read sequencing.
 
 The design matrix is created in a way that the first time point, `day0`, is used as a baseline (intercept of the model).
 
@@ -166,9 +206,9 @@ design <- model.matrix( ~ day)
 design
 ```
 
-### 0.025
+#### NDR 0.025
 
-The first NDR cutoff is 0.025. The differential expression analysis is performed with `edgeR`, and genes are considered as differentially expressed if the adjusted p-value of the log-likelihood test between the full and the reduced model is below 0.01. The p-value adjustment is performed using the Benjamini-Hochberg method.
+The first NDR cutoff is 0.025. The differential expression analysis is performed with `edgeR`, and genes are considered as differentially expressed if the adjusted p-value of the likelihood ratio test between the full and the reduced model is below 0.01. The p-value adjustment is performed using the Benjamini-Hochberg method.
 
 ```{r}
 # Salmon 0.025
@@ -214,7 +254,7 @@ colnames(de_genes_0.025) <- c("Salmon_0.025", "Bambu_0.025")
 upset(de_genes_0.025, sets = colnames(de_genes_0.025))
 ```
 
-From the UpSet plot above it is visible that, even though identifying roughly the same number of genes as differentially expressed, the two technologies have same differences in their results. The majority of genes identified overlap, however, there is still are still some genes only called differentially expressed by either Illumina+Salmon or by PacBio+Bambu. To further investigate the similarities/differences, the logFC and p-values of the analysis was compared.
+From the UpSet plot above it is visible that, even though identifying roughly the same number of genes as differentially expressed, the two technologies show some differences in their results. The majority of genes identified overlap, however, there are still some genes only called differentially expressed by either Illumina+Salmon or by PacBio+Bambu. To further investigate the similarities/differences, the logFC and p-values of the analysis was compared. The p-values are calculated for the likelihood ratio test, the logFC values, however, are calculated for the discrete comparisons of the days 1-5 with day 0. Here, the logFC values of day 5 were compared.
 
 ```{r}
 # comparison of padj and logfc
@@ -244,9 +284,9 @@ ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
   labs(title = "Comparison of LogFC (NDR=0.025)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
 ```
 
-The comparison of the p-values after adjustment shows a similar trend in both technologies, but also same differences showing that the results differ. The same is observable for the logFC values. Additionally, it is visible that many genes that show no logFC in the analysis of one technology shows a (high) logFC in the other one, which agrees with the observation in the UpSet plot, that some genes are called differentially expressed by either of the two technologies, but not by both.
+The comparison of the p-values after adjustment shows a similar trend in both technologies, but also some differences. The same is observable for the logFC values. Additionally, it is visible that many genes that show a logFC value of zero in the analysis of one technology shows a (high) logFC value in the other one, which agrees with the observation made in the UpSet plot, that some genes are called differentially expressed by either of the two technologies, but not by both.
 
-After performing the differential gene expression analysis over the whole time course, the first and the last time points were also compared as discrete conditions to identify up- or down-regulated genes only comparing the begin and the end of the experiment.
+After performing the differential gene expression analysis over the whole time course, the first and the last time points (days 0 and 5) were also compared as discrete conditions to identify up- or down-regulated genes only comparing the begin and the end of the experiment.
 
 ```{r}
 # time point comparison
@@ -318,7 +358,7 @@ ggplot(
 
 The analysis identifies 2377 down-regulated and 4057 up-regulated genes for Illumian+Salmon and 2014 down-regulated and 3144 up-regulated genes for PacBio+Bambu. Again, 24717 genes were tested and both technologies show similar results.
 
-### 0.05
+#### NDR 0.05
 
 The next NDR cutoff is 0.05. The same analysis steps that were performed for the NDR cutoff of 0.025 were performed here.
 
@@ -366,7 +406,7 @@ colnames(de_genes_0.05) <- c("Salmon_0.05", "Bambu_0.05")
 upset(de_genes_0.05, sets = colnames(de_genes_0.05))
 ```
 
-The UpSet plot shows similar results compared to the NDR cutoff of 0.025. Again, the majority of genes are detected by both methods, however, some are deteced by either of the two methods.
+The UpSet plot shows similar results compared to the NDR cutoff of 0.025. Again, the majority of genes are detected by both methods, however, some are detected by either of the two methods.
 
 ```{r}
 # comparison of padj and logfc
@@ -466,9 +506,9 @@ ggplot(
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-The differential expression analysis of day5 and day0 identifies 2388 down-regulated and 4071 up-regulated genes for Illumian+Salmon and 2031 down-regulated and 3172 up-regulated genes for PacBio+Bambu. Again, 24811 genes were tested and both technologies show similar results.
+The differential expression analysis of day 5 and day 0 identifies 2388 down-regulated and 4071 up-regulated genes for Illumian+Salmon and 2031 down-regulated and 3172 up-regulated genes for PacBio+Bambu. Again, 24811 genes were tested and both technologies show similar results.
 
-### 0.1
+#### NDR 0.1
 
 The next NDR cutoff is 0.1. The same analysis steps that were performed for the other NDR cutoffs were performed here as well.
 
@@ -618,7 +658,7 @@ ggplot(
 
 The time point differential expression analysis (day5 and day0) identified 2467 down-regulated and 4093 up-regulated genes for Illumina+Salmon and 2093 down-regulated and 3265 up-regulated genes for PacBio+Bambu. In total, 25104 were tested.
 
-### 0.2
+#### NDR 0.2
 
 The last NDR cutoff is 0.2. Again, the same steps are performed.
 
@@ -770,9 +810,9 @@ For the time point comparison, 2467 down-regulated and 4093 up-regulated genes f
 
 The differential gene expression analysis mainly showed two things. First, it showed that the results of the different NDR cutoff rates are very similar, the main difference here is that more genes are in the data in the first place from the quantification. Second, it showed that the results of the two different technologies, Illumina+Salmon and PacBio+Bambu, are quite similar, but also show some differences. When treating the Illumina+Salmon data as the ground truth, it can be said that PacBio+Bambu is pretty close to the truth, but still shows some deviations.
 
-Following a differential gene expression analysis, the identified genes can be grouped into gene sets of similar genes and a function or pathways analysis can be conducted using these gene sets. To do so, we decided to use only the genes that were detected by the analyses of both technologies, so the overlap which can be seen in the UpSet plot. Since the results of the different NDR cutoffs are very similar, we also decided to use only one of the cutoffs, namely the NDR cutoff of 0.2. This is the highest cutoff and therefore the data includes the most transcripts/genes.
+Following a differential gene expression analysis, the identified genes can be grouped into gene sets of similar genes and a function or pathways analysis can be conducted using these gene sets. To do so, only the genes that were detected by the analyses of both technologies were used, so the overlap which can be seen in the UpSet plot. Since the results of the different NDR cutoffs are very similar, only one of the cutoffs, namely the NDR cutoff of 0.2, was used. This is the highest cutoff and therefore the data includes the most transcripts/genes.
 
-## Grouping of DE genes
+### Grouping of Differentially Expressed Genes
 
 To group the differentially expressed genes, the average expression of each gene at each time point was calculated first. 
 
@@ -798,7 +838,7 @@ avg_expr <- avg_expr[, c(1,4,5,2,6,3)]
 colnames(avg_expr) <- sort(unique(meta_samples$time))
 ```
 
-The genes are then clustered using the their correlation as a distance measure (to be more exact: 1-correlation). The cluster dendrogram of the hierarchical clustering as well as a heat map of the correlation including the dendrogram are shown below.
+The genes are then clustered using the their correlation as a distance measure (to be more precise: *1-correlation*). The cluster dendrogram of the hierarchical clustering as well as a heat map of the correlation including the dendrogram are shown below.
 
 ```{r}
 corr_DEG <- cor(t(avg_expr[DEG,]), method = "spearman")
@@ -827,15 +867,15 @@ for(cl in 1:4)
 
 The expression pattern of cluster 1 seems to follow a downwards trend, meaning that cluster 1 might contain mostly genes that are down-regulated over the time course. Clusters 2 and 3 show an upwards trend in expression, so these clusters might contain mostly genes that are up-regulated over the time course. Cluster 4 does not follow an apparent trend, there are many outliers visible in at all time points and the hight of the boxes seem to fluctuate rather than following a trend. Moreover, this cluster is also the smallest one.
 
-For the following function and pathway analysis, the 4 clusters were used as gene sets.
+For the following gene set analysis, the 4 clusters were used as gene sets.
 
-## Function/Pathway analysis
+### Gene Set Analysis
 
-The pathway analysis was performed using two different methods. First, the method DAVID was used, which is a frequency-based method. Second, the method GSEA was used, which is a ranked-based method.
+The gene set analysis was performed using two different methods. First, the method DAVID was used, which is a frequency-based method. Second, the method GSEA was used, which is a ranked-based method.
 
-### DAVID (frequency-based)
+#### DAVID (frequency-based)
 
-To perform DAVID on the 4 gene sets, the ensemble gene ids of the genes must be extracted and then written into text files, which are uploaded to the DAVID web tool. Since same of the newly discovered transcripts could not be mapped to an existing gene, there are some genes in the gene sets that do not have an ensemble gene id compatible with DAVID. These genes were therefore removed from the analysis. As explained in the methods part, the results of DAVID depend on the background gene set which is used during the analysis. Here, the background list contained all genes of the 0.2 NDR cutoff data after filtering, with the expection of newly identified genes.
+To perform DAVID on the 4 gene sets, the ensemble gene ids of the genes must be extracted and then written into text files, which are uploaded to the DAVID web tool. Since same of the newly discovered transcripts could not be mapped to an existing gene, there are some genes in the gene sets that do not have an ensemble gene id compatible with DAVID. These genes were therefore removed from the analysis. As explained in the methods part, the results of DAVID depend on the background gene set which is used during the analysis. Here, the background list contained all genes of the 0.2 NDR cutoff data after filtering, with the exception of newly identified genes.
 
 ```{r}
 get_ensemble_id <- function(input_string) {
@@ -942,10 +982,9 @@ The results of gene set 3 include associations with the cell surface and the cel
 
 Lastly, the results of gene sets 4 again include more terms then the ones of gene sets 1 and 3, but less then gene set 2. This seems to be surprising when just looking at the sizes of the genes sets, since gene set 4 is with 680 genes by far the smallest gene set. However, as described above, the average expression of genes cluster 4 does not follow a trend similar to what can be observed in the other clusters, but it seems to fluctuate over the course of time. This might be be caused by cluster 4 being more heterogeneous than the other clusters, which could also explain why many more terms were found for this cluster than for clusters 1 and 3, even though they are larger. The significant terms of gene set 4 include functions related to the nucleus, DNA replication, transcription and translation.
 
-When looking at all functions or pathways that DAVID found an association with, it seems like many different cellular components are involved in the changes over the course of time. 
-...
+When looking at all functions or pathways that DAVID found an association with, it seems like many different cellular components are involved in the changes over the course of time. Especially for the larger clusters, many different gene ontology terms are significant. From this analysis, it is difficult to make assumptions about specific pathways or cellular functions that are up- or down-regulated over the course of time. However, it can be said that the treatment of the cells with differentiation factors possible affects many components of the cells.
 
-### GSEA (ranked-based)
+#### GSEA (ranked-based)
 
 ```{r}
 top_genes <- topTags(lrt_pathway, n = nrow(y_salmon_0.2))
@@ -957,12 +996,55 @@ names(ranked_list) <- ranked_list_names
 ```
 
 ```{r}
+# cluster 1
 genesets <- msigdbr(species = "Homo sapiens", category = "C8")
 genesets_list <- tapply(genesets$ensembl_gene, genesets$gs_name, list)
 
 fgsea_kegg <- fgsea(
   pathways = genesets_list,
-  stats = ranked_list,
+  stats = ranked_list[names_cluster1],
+  scoreType = "pos",
+  minSize  = 15,
+  maxSize  = 500
+)
+
+fgsea_kegg[order(NES, decreasing = T), ][1:10, 1:7]
+
+# cluster 2
+genesets <- msigdbr(species = "Homo sapiens", category = "C8")
+genesets_list <- tapply(genesets$ensembl_gene, genesets$gs_name, list)
+
+fgsea_kegg <- fgsea(
+  pathways = genesets_list,
+  stats = ranked_list[names_cluster2],
+  scoreType = "pos",
+  minSize  = 15,
+  maxSize  = 500
+)
+
+fgsea_kegg[order(NES, decreasing = T), ][1:10, 1:7]
+
+# cluster 3
+genesets <- msigdbr(species = "Homo sapiens", category = "C8")
+genesets_list <- tapply(genesets$ensembl_gene, genesets$gs_name, list)
+
+fgsea_kegg <- fgsea(
+  pathways = genesets_list,
+  stats = ranked_list[names_cluster3],
+  scoreType = "pos",
+  minSize  = 15,
+  maxSize  = 500
+)
+
+fgsea_kegg[order(NES, decreasing = T), ][1:10, 1:7]
+
+# cluster 4
+genesets <- msigdbr(species = "Homo sapiens", category = "C8")
+genesets_list <- tapply(genesets$ensembl_gene, genesets$gs_name, list)
+
+fgsea_kegg <- fgsea(
+  pathways = genesets_list,
+  stats = ranked_list[names_cluster4],
   scoreType = "pos",
   minSize  = 15,
   maxSize  = 500
@@ -971,11 +1053,45 @@ fgsea_kegg <- fgsea(
 fgsea_kegg[order(NES, decreasing = T), ][1:10, 1:7]
 ```
 
+## Discussion
 
+### Differntial Gene Expression Analysis
 
+The aim of the differential gene expression analysis was to identify genes that are differentially expressed over the course of time, and to compare these results of the Illumina+Salmon data (short read data) with the results of the PacBio+Bambu data (long read data) for 4 different NDR cutoffs. 
 
+When comparing the different NDR cutoffs, only minor differences could be detected. This was expected since the main difference between the data sets of the different cutoffs were the number of newly detected genes. What was also expected about the differential gene expression analysis was the quite large number of genes that were called differentially expressed. For all NDR cutoffs, the fraction of genes called differentially expressed out of all analyzed genes was around 30%. This was not unexpected since the RNA samples came from induced pluripotent stem cells that were treated with differentiation factors.
 
+The more interesting part was the comparison between the short read data and the long read data. The short read data was produced from Illumina sequencing. Since Illumina sequencing has been in use for some time and therefore underwent lots of optimization, it is was treated as a ground truth in this project. The long read data, however, was produced from PacBio sequencing, which suffers still from some biases, like a fragment length bias. Here, the data was produced using a new protocol which might display an optimization for PacBio sequencing. To evaluate this, the results of the PacBio data was compared to the Illumina data results. It could be shown that for both cases roughly the same amount of genes were identified as differentially expressed. However, when overlaying these genes, there were still many genes only called differentially expressed in one of the two cases. Moreover, when comparing the adjusted p-values and logFC values of the likelihood ratio tests, deviations between the two cases were visible. Nevertheless, a common trend could be detected, also for the differential gene expression when comparing only days 0 and 5. Together with the fact that the majority of differential expressed genes tend to be called by both methods, this shows that the analysis of the PacBio data already comes close to the truth, when treating Illumina as the truth. Due to the lack of PacBio data from older protocols, it is not possible to draw a conclusion regarding the improvement of this protocol compared to others.
 
+### Grouping of Differentially Expressed Genes
+
+The grouping of differentially expressed genes was only an intermediate step between the differential expression analysis and the gene set analysis. Nonetheless, it showed some interesting results and can possible influence the outcome of the gene set analysis.
+
+The number of clusters/sets the genes were grouped in (here 4) was choosen more or less arbitrarily, mostly guided by visual inspection. The since the number of clusters was rather small, and the number of genes that were grouped was rather large, most of the clusters were rather large as well, they mostly contained more than 1000 genes. Since the clusters were used as input gene sets for the gene set analysis, this choice possible affected the outcome of the gene set analysis and will therefore be discussed again in the context of the gene set analysis.
+
+### Gene Set Analysis
+
+The gene set analysis was performed with the aim of making sense of the genes that the analysis identified as differentially expressed. To do so, the detected differentially expressed genes were grouped into 4 gene sets, which were then used as input for the gene set analysis with the web tool DAVID.
+
+For the gene set 1 and 3, around 30 to 50 gene ontology terms were found to be significantly enriched in the gene sets of about 1200 - 1500 genes. The terms for gene set 1 were mostly related to the neurological synapse and signalling between neurons, meaning that this cluster possible contains an enriched amount of genes involved in neurological signalling. For gene set 3, the terms were mostly related to the cell membrane, the cytoplasm and signal transduction. The terms found significant for these two gene sets were rather homogeneous. The same could be observed for gene set 4, which genes were found to be involved mostly in functions associated with the cell nucleus and RNA/DNA. Notably, the amount of terms that were detected to be significantly enriched in gene set 4 was much higher (130 terms) than in gene sets 1 and 3, even though gene set 4 was only around half the size of the other two (there are 680 genes in gene set 4). Assuming that more genes in a gene set usually lead to more terms to be found significant, this could mean that gene set 4 is less homogeneous than gene sets 1 and 3. The largest gene set, gene set 4, shows the highest amount of significant terms (250 while containing 2158 genes). The results of this gene sets contain many terms associated with the Homeobox/Homeodomain and other developmental functions, but also with many other things like cell membrane/surface, signalling or the immune system. These results seem to be more heterogeneous than the results of the other 3 gene sets, which could be caused by the larger size of gene set 2 and/or by more heterogeneity between the genes of this gene set. To overcome this issue and get clearer results also for gene set 2, the number of clusters during the grouping of differentially expressed genes could have been choosen larger to create smaller and therefore possible more homogeneous gene sets. However, when cutting the tree with the `cutree` function, the largest cluster, so gene set 2, gets only notable smaller when setting the number of cluster to 13. At this point, many small clusters are create, with less than 50 genes. Therefore, the number of clusters was left to be 4.
+
+In general, the terms that were found to be significant by the gene set analysis for all gene sets cover a lot of different functions and pathways in the cell. This could be explained by the experimental conditions, and by the cell line that was used. The cell line, namely WTC-11 cells, are induced pluripotent stem cells and therefore posses embryonic stem cell-like properties and are of pluripotent nature. These cells were treated with differentiation factors, meaning that these factors drove the process of cellular differentiation, so the differentiation of a less specialized cell into a more specialized one. Thus, many different cellular function and pathways could be affected. Since many differentially expressed genes (the ones in gene set 1) were associated with neurological functions, the treatment possible included neurotrophic factors like *Nerve Growth Factor* (NGF) or *Brain-Derived Neurotrophic Factor* (BDNF).
+
+## Outlook
+
+## Literature
+
+- Benjamini, Y. and Hochberg, Y. (1995), Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing. Journal of the Royal Statistical Society: Series B (Methodological), 57: 289-300. 
+- Gehlenborg N (2019). UpSetR: A More Scalable Alternative to Venn and Euler Diagrams for Visualizing Intersecting Sets. <https://CRAN.R-project.org/package=UpSetR>.
+- Posit team (2023). RStudio: Integrated Development Environment for R. Posit Software, PBC, Boston, MA. URL <http://www.posit.co/>.
+- Robinson MD, McCarthy DJ and Smyth GK (2010). edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. Bioinformatics 26, 139-140.
+- Sherman, B. T., Hao, M., Qiu, J., Jiao, X., Baseler, M. W., Lane, H. C., Imamichi, T., & Chang, W. (2022). DAVID: a web server for functional enrichment analysis and functional annotation of gene lists (2021 update). Nucleic acids research 50, 216-221. 
+
+## Session Info and R Package Versions
+
+```{r}
+sessionInfo()
+```
 
 
 
