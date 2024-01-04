@@ -1,5 +1,5 @@
 ---
-title: "Comparison PacBio vs. Illumina"
+title: "Comparison PacBio vs. Illumina tpm"
 author: "Marie-Claire Indilewitsch"
 date: today
 format: 
@@ -36,25 +36,25 @@ df_list_meta <- readRDS("meta.rds")
 ```
 
 ```{r}
-bambu_0.025 <- df_list_bambu$bambu_0.025
-bambu_0.05 <- df_list_bambu$bambu_0.05
-bambu_0.1 <- df_list_bambu$bambu_0.1
-bambu_0.2 <- df_list_bambu$bambu_0.2
+bambu_0.025 <- df_list_bambu$bambu_0.025_tpm
+bambu_0.05 <- df_list_bambu$bambu_0.05_tpm
+bambu_0.1 <- df_list_bambu$bambu_0.1_tpm
+bambu_0.2 <- df_list_bambu$bambu_0.2_tpm
 
-salmon_0.025 <- df_list_salmon$salmon_0.025
-salmon_0.05 <- df_list_salmon$salmon_0.05
-salmon_0.1 <- df_list_salmon$salmon_0.1
-salmon_0.2 <- df_list_salmon$salmon_0.2
+salmon_0.025 <- df_list_salmon$salmon_0.025_tpm
+salmon_0.05 <- df_list_salmon$salmon_0.05_tpm
+salmon_0.1 <- df_list_salmon$salmon_0.1_tpm
+salmon_0.2 <- df_list_salmon$salmon_0.2_tpm
 
-bambu_0.025_gene <- df_list_bambu$bambu_0.025_gene
-bambu_0.05_gene <- df_list_bambu$bambu_0.05_gene
-bambu_0.1_gene <- df_list_bambu$bambu_0.1_gene
-bambu_0.2_gene <- df_list_bambu$bambu_0.2_gene
+bambu_0.025_gene <- df_list_bambu$bambu_0.025_tpm_gene
+bambu_0.05_gene <- df_list_bambu$bambu_0.05_tpm_gene
+bambu_0.1_gene <- df_list_bambu$bambu_0.1_tpm_gene
+bambu_0.2_gene <- df_list_bambu$bambu_0.2_tpm_gene
 
-salmon_0.025_gene <- df_list_salmon$salmon_0.025_gene
-salmon_0.05_gene <- df_list_salmon$salmon_0.05_gene
-salmon_0.1_gene <- df_list_salmon$salmon_0.1_gene
-salmon_0.2_gene <- df_list_salmon$salmon_0.2_gene
+salmon_0.025_gene <- df_list_salmon$salmon_0.025_tpm_gene
+salmon_0.05_gene <- df_list_salmon$salmon_0.05_tpm_gene
+salmon_0.1_gene <- df_list_salmon$salmon_0.1_tpm_gene
+salmon_0.2_gene <- df_list_salmon$salmon_0.2_tpm_gene
 
 meta_samples <- df_list_meta$metadata
 ```
@@ -570,7 +570,7 @@ ggplot(sums_df_0.2, aes(x = Range, y = Sum)) +
 group <- factor(df_list_meta$metadata$time)
 
 ## Salmon 0.025
-y_salmon_0.025 <- DGEList(counts = salmon_0.025, group = group)
+y_salmon_0.025 <- salmon_0.025
 
 mds <- plotMDS(y_salmon_0.025, plot = FALSE) # uses plotMDS.DGEList
 
@@ -589,7 +589,7 @@ ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   scale_color_viridis_d()
 
 ## Bambu 0.025
-y_bambu_0.025 <- DGEList(counts = bambu_0.025, group = group)
+y_bambu_0.025 <- bambu_0.025
 
 mds <- plotMDS(y_bambu_0.025, plot = FALSE) # uses plotMDS.DGEList
 
@@ -609,7 +609,7 @@ ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
 
 
 ## Salmon 0.05
-y_salmon_0.05 <- DGEList(counts = salmon_0.05, group = group)
+y_salmon_0.05 <- salmon_0.05
 
 mds <- plotMDS(y_salmon_0.05, plot = FALSE) # uses plotMDS.DGEList
 
@@ -628,7 +628,7 @@ ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   scale_color_viridis_d()
 
 ## Bambu 0.05
-y_bambu_0.05 <- DGEList(counts = bambu_0.05, group = group)
+y_bambu_0.05 <-bambu_0.05
 
 mds <- plotMDS(y_bambu_0.05, plot = FALSE) # uses plotMDS.DGEList
 
@@ -647,7 +647,7 @@ ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   scale_color_viridis_d()
 
 ## Salmon 0.1
-y_salmon_0.1 <- DGEList(counts = salmon_0.1, group = group)
+y_salmon_0.1 <- salmon_0.1
 
 mds <- plotMDS(y_salmon_0.1, plot = FALSE) # uses plotMDS.DGEList
 
@@ -666,7 +666,7 @@ ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   scale_color_viridis_d()
 
 ## Bambu 0.1
-y_bambu_0.1 <- DGEList(counts = bambu_0.1, group = group)
+y_bambu_0.1 <- bambu_0.1
 
 mds <- plotMDS(y_bambu_0.1, plot = FALSE) # uses plotMDS.DGEList
 
@@ -685,7 +685,7 @@ ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   scale_color_viridis_d()
 
 ## Salmon 0.2
-y_salmon_0.2 <- DGEList(counts = salmon_0.2, group = group)
+y_salmon_0.2 <- salmon_0.2
 
 mds <- plotMDS(y_salmon_0.2, plot = FALSE) # uses plotMDS.DGEList
 
@@ -704,7 +704,7 @@ ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   scale_color_viridis_d()
 
 ## Bambu 0.2
-y_bambu_0.2 <- DGEList(counts = bambu_0.2, group = group)
+y_bambu_0.2 <- bambu_0.2
 
 mds <- plotMDS(y_bambu_0.2, plot = FALSE) # uses plotMDS.DGEList
 
