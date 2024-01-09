@@ -33,7 +33,7 @@ First, the direct differences between the Illumina+Salmon and PacBio+Bambu dataf
 
 #### Correlation Illumina+Salmon vs. PacBio+Bambu 
 
-Secondly, the correlation between Illumina+Salmon and PacBio+Bambu was looked at first not stratified by length and secondly, stratified by length on the transcript level (tpm) for all 4 NDR cutoffs. Hereby the samples were divided into 10 bins always portraing an interval of transcript length of 1000 (0-1000, 1000-2000 and so on). Thus, the bins do not have the same size. Both pearson and spearman correlation between all samples were performed and visualized in heatmaps but in the results we decided on showing only the spearman plots (explained in the discussion). For all 10 bins the correlations were summed up and shown in a scatter plot to see the effect of transcript length for all 4 NDR cutoffs. 
+Secondly, the correlation between Illumina+Salmon and PacBio+Bambu was looked at first not stratified by length and secondly, stratified by length on the transcript level (tpm) for all 4 NDR cutoffs. Hereby the samples were divided into 10 bins always portraying an interval of transcript length of 1000 (0-1000, 1000-2000 and so on). Thus, the bins do not have the same size. Both pearson and spearman correlation between all samples were performed and visualized in heatmaps but in the results we decided on showing only the spearman plots (explained in the discussion). For all 10 bins the correlations were summed up and shown in a scatter plot to see the effect of transcript length for all 4 NDR cutoffs. 
 
 #### MDS plots 
 
@@ -51,15 +51,14 @@ library(ggplot2)
 library(edgeR)
 library(limma)
 library(patchwork)
-library(cowplot)
 ```
 
 ### Load data
 
 The data is loaded from RDS-object files from bambu, salmon and the metadata (from import_processing.qmd). For each of the 4 NDR cutoffs (0.025, 0.05, 0.1, 0.2), two data frames exist containing the expression data (counts) as well as transcript-per-million (tpm) of the two different technologies used to obtain the data:
 
-    Illumina sequencing and Salmon quantification (short read)
-    PacBio sequencing and Bambu quantification (long read)
+    1. Illumina sequencing and Salmon quantification (short read)
+    2. PacBio sequencing and Bambu quantification (long read)
 
 In total, this adds up to 16 different data frames. Each of these data frames contains 11 samples, which are replicates from one of five different time points. Each time point has 1-3 replicates.
 
@@ -113,7 +112,7 @@ salmon_0.2_gene_count <- df_list_salmon$salmon_0.2_gene
 meta_samples <- df_list_meta$metadata
 ```
 
-## Differences 
+### Differences 
 
 The differences between Illumina+Salmon and PacBio+Bambu have been computed in a direct comparison and it was calculated how many percent had a difference smaller than 50 (just to get an overview of the raw differences). 
 
@@ -146,9 +145,9 @@ nrow(salmon_0.2_gene[which(rowSums(abs(difference4_gene)) < 50), ])/nrow(salmon_
 ```
 On the transcript level the differences are under 50 for always around 92% of the transcripts for all the NDR cutoffs and for the gene level around 85% for all the NDR cutoffs. 
 
-## Histograms of differences 
+### Histograms of differences 
 
-This was then visualized for always the first column. Here we only show the plots for the 0.025 and 0.05 cutoffs on transcript and gene level because all 8 histograms all look almost the same. The rest can be seen in the comparison_pacbio_illumia.qmd file. 
+This was then visualized for always the first column. Here we only show the plots for the 0.025 and 0.05 cutoffs on transcript and gene level because all 8 histograms  look almost the same. The rest can be seen in the comparison_pacbio_illumia.qmd file. 
 
 ```{r, warning = FALSE}
 #only always performed on first column
@@ -157,7 +156,7 @@ diff1 <- ggplot(difference1, aes(x = difference1[,1])) +
   geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
   xlim(-100,200)+
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
   scale_color_viridis() +
   labs(title = "Difference between bambu and salmon 0.025", x = "difference", y = "freq")
 
@@ -165,7 +164,7 @@ diff2 <- ggplot(difference2, aes(x = difference2[,1])) +
   geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
   xlim(-100,200)+
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
   scale_color_viridis() +
   labs(title = "Difference between bambu and salmon 0.05", x = "difference", y = "freq")
 
@@ -173,7 +172,7 @@ diff3 <- ggplot(difference1_gene, aes(x = difference1_gene[,1])) +
   geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
   xlim(-100,200)+
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
   scale_color_viridis() +
   labs(title = "Difference between bambu and salmon 0.025 gene level", x = "difference", y = "freq")
 
@@ -182,7 +181,7 @@ diff4 <- ggplot(difference2_gene, aes(x = difference2_gene[,1])) +
   geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
   xlim(-100,200)+
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 8)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
   scale_color_viridis() +
   labs(title = "Difference between bambu and salmon 0.05 gene level", x = "difference", y = "freq")
 
@@ -192,9 +191,9 @@ plot1
 ```
 As one can see, the most differences are around 0 (highest bar) with small bars around it. Thus, when just looking at the raw data the difference between Illumina+Salmon and PacBio+Bambu is small. 
 
-## Correlation and stratification by length 
+### Correlation and stratification by length 
 
-Next, the correlation between Illumina+Salmon and PacBio+Bambu was computed. For that, first the trasncript lengths were exported as well as their distribution looked at to be able to divide them into sections for the stratification by transcript length. 
+Next, the correlation between Illumina+Salmon and PacBio+Bambu was computed. For that, first the transcript lengths were exported as well as their distribution looked at to be able to divide them into sections for the stratification by transcript length. 
 
 ```{r, warning = FALSE}
 #get length and filter by it 
@@ -228,7 +227,7 @@ quant_8000_9000 <- quant[quant$Length >= 8000 & quant$Length < 9000, ]
 quant_9000_10000 <- quant[quant$Length >= 9000 & quant$Length < 10000, ]
 ```
 
-As seen in the above plot, most transcripts have a length between 0 and around 2000 and at arounf 10000 almost no transcripts can be found. So, we decided on dividing the lengths into intervals of 1000 from 0 to 10000. Here it is of note, that the intervals do not contain the same amount of transcripts so the bins have different sizes.
+As seen in the above plot, most transcripts have a length between 0 and around 2000 and at around 10000 almost no transcripts can be found. So, we decided on dividing the lengths into intervals of 1000 from 0 to 10000. Here it is of note, that the intervals do not contain the same amount of transcripts so the bins have different frequencies. 
 
 So first, the correlation not stratified by length was plotted. We performed both pearson- and spearman-correlation but we will only show one pearson plot here and only the first two NDR cutoffs for demonstration purposes (this will be talked about in the discussion). 
 
@@ -253,9 +252,9 @@ heat4 <- pheatmap(cor_0.05_gene_sp, cluster_rows = FALSE, cluster_cols = FALSE, 
 
 ```
 
-The heatmap for the pearson correlation looks unusal as not every sample is highest correlated with itself and the spearman heatmaps look similar between the cutoffs but there is lower correlation on the gene level compared to the transcript level. Also the day 2 and day3 bambu samples seem to be highly corrlated also with the day 4 and day 5 salmon samples. 
+The heatmap for the pearson correlation looks unusual as not every sample is highest correlated with itself and the spearman heatmaps look similar between the cutoffs but there is lower correlation on the gene level compared to the transcript level. Also the day 2 and day 3 bambu samples seem to be highly corrlated also with the day 4 and day 5 salmon samples. 
 
-Then, the correlation stratified by length was plotted for all 4 NDR cutoffs. For the purpose of no further information gain we will only show one pearson plot again and then representitavely one heatmap (for one bin) for each NDR cutoff ( we chose 1000-2000 as its the most abundant transcript length) as well as all 4 scatterplots of the summed up correlation stratified by length. 
+Then, the correlation stratified by length was plotted for all 4 NDR cutoffs. For the purpose of no further information gain we will only show one pearson plot again and then representitavely one spearman heatmap (for one bin) for each NDR cutoff ( we chose 1000-2000 as its the most abundant transcript length) as well as all 4 scatterplots of the summed up correlation stratified by length. 
 
 ```{r message = FALSE}
 #0.025 
@@ -327,7 +326,7 @@ sums_df <- data.frame(
 
 ggplot(sums_df, aes(x = Range, y = Sum)) +
   geom_point(color = "blue", size = 3) +
-  labs(title = "Scatterplot of summed up pearson correlations stratified by transcript length", x = "Range of transcript length", y = "Summed up orrelation")+
+  labs(title = "Scatterplot of summed up pearson correlations stratified by transcript length", x = "Range of transcript length", y = "Summed up correlation")+
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_viridis() +
@@ -377,14 +376,15 @@ sums_df_sp <- data.frame(
 
 scatter1 <- ggplot(sums_df_sp, aes(x = Range, y = Sum)) +
   geom_point(color = "blue", size = 3) +
-  labs(title = "0.025", x = "Range", y = "Correlation")+
+  labs(title = "0.025", x = "Range", y = "Summed up correlation")+
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 9)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
   scale_color_viridis() +
   stat_smooth(method="lm", col = "red", lty = 2)
 
 
 ```
+The pearson plots do not look like usual heatmap as the day 2 - rep 1 - bambu is highly correlated with all samples of salmon and the rest of the correlations seem quite low. Also the scatterplot is widely spread and one can see no clear trend of the summed up correlation as it is jumping up and down. When observing the 0.025 heatmap with spearman correlation one sees most of the samples being highly correlated with itself (or the replicates) and a bit clearer the highly correlated diagonal usually seen in heatmaps. 
 
 ```{r}
 #0.05
@@ -463,9 +463,9 @@ sums_df_0.05 <- data.frame(
 
 scatter2 <- ggplot(sums_df_0.05, aes(x = Range, y = Sum)) +
   geom_point(color = "blue", size = 3) +
-  labs(title = "0.05", x = "Range", y = "Correlation")+
+  labs(title = "0.05", x = "Range", y = "Summed up correlation")+
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 9)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
   scale_color_viridis() +
   stat_smooth(method="lm", col = "red", lty = 2)
 
@@ -548,9 +548,9 @@ sums_df_0.1 <- data.frame(
 
 scatter3 <- ggplot(sums_df_0.1, aes(x = Range, y = Sum)) +
   geom_point(color = "blue", size = 3) +
-  labs(title = "0.1", x = "Range", y = "Correlation")+
+  labs(title = "0.1", x = "Range", y = "Summed up correlation")+
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 9)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
   scale_color_viridis()+
   stat_smooth(method="lm", col = "red", lty = 2)
 ```
@@ -630,20 +630,22 @@ sums_df_0.2 <- data.frame(
 
 scatter4 <- ggplot(sums_df_0.2, aes(x = Range, y = Sum)) +
   geom_point(color = "blue", size = 3) +
-  labs(title = "0.2", x = "Range", y = "Correlation")+
+  labs(title = "0.2", x = "Range", y = "Summed up correlation")+
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size = 9)) +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
   scale_color_viridis()+
   stat_smooth(method="lm", col = "red", lty = 2)
 
 scatter_total <- scatter1 + scatter2 + scatter3 + scatter4
 scatter_total <- scatter_total +
   plot_layout(nrow = 2, byrow = TRUE) +
-  plot_annotation(title = "Scatterplots of summed up correlations stratified by range of transcript lengths")
+  plot_annotation(title = "Scatterplots of summed up correlations stratified by range of transcript lengths (0-10000)")
 scatter_total
-```
 
-## MDS
+```
+The rest of the heatmaps for the other cutoffs (0.05, 0.1, 0.2) look very similar to the 0.025 heatmap. Looking at the scatterplots of summed up correlations stratified by range of transcript lengths they also look almost the same between the different cutoffs. One can observe the clear trend that with a higher transcript length the correlation is also higher but for very small transcript lengths (<1000) the correlation is very low. 
+
+### MDS
 
 ```{r}
 group <- factor(df_list_meta$metadata$time)
@@ -663,7 +665,7 @@ mds1 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   geom_point(size = 4) +
   geom_text(aes(label = shortname), vjust = -1, size = 3) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
   labs(title = "MDS Salmon 0.025", color = "Group") +
   scale_color_viridis_d()
 
@@ -682,7 +684,7 @@ mds2 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   geom_point(size = 4) +
   geom_text(aes(label = shortname), vjust = -1, size = 3) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
   labs(title = "MDS Bambu 0.025", color = "Group") +
   scale_color_viridis_d()
 
@@ -702,7 +704,7 @@ mds3 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   geom_point(size = 4) +
   geom_text(aes(label = shortname), vjust = -1, size = 3) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
   labs(title = "MDS Salmon 0.05", color = "Group") +
   scale_color_viridis_d()
 
@@ -721,7 +723,7 @@ mds4 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
   geom_point(size = 4) +
   geom_text(aes(label = shortname), vjust = -1, size = 3) +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
   labs(title = "MDS Bambu 0.05", color = "Group") +
   scale_color_viridis_d()
 
@@ -807,3 +809,40 @@ mdstotal1
 mdstotal2
 
 ```
+The MDS plots look very similiar between all the 4 NDR cutoffs. When comparing the MDS plots between Salmon and Bambu the MDS1 separation by day is almost the same with the MDS2 separation being a bit more different. In Bambu the replicated are grouped a bit closer together then in Salmon and fewer samples are above 0. 
+
+## Discussion
+
+With the exploratory analysis of the data the goal was to get a first overview of both datasets as well as the differences in the raw data between Illumina+Salmon and PacBio+Bambu for all 4 different NDR cutoffs and correlations between the two methods stratified by length. 
+
+Firstly, the results for all 4 cutoffs are very similar which is why we decided to also keep in only the results for one/two different NDR cutoffs for this part of the report as we gain no extra information when including all cutoffs and this would take up too much space. The only small differences can be explained by the fact that the NDR cutoffs determine the number of newly detected genes which doesn't have an effect on the comparison of both methods.
+
+Secondly, we performed the analysis on count and tpm data but decided to keep in only the result for tpm as we stratify by transcipt length therefore making these results more interesting, also because the further analysis steps are also performed on tpm rather than the raw count data. For completeness the count results can be found in a separate file(comparison_pacbio_illumina.qmd).
+
+### Differences 
+
+We wanted to further look at the differences between the Illumina data, so short read data produced by a thoroughly optimized and long-in-use method, and the long-read PacBio data, that has not been optimized well and is still suffering some biases. So we started with just looking at the difference in raw data. Looking at the percentages and the histograms the difference in raw data seems to be quite small the majority being <50 as well as the highest bar of the histograms being around 0. This was shown here only for the first column as all the oher columns look very similar (no information gain). This would suggest that the Illumina and PacBio raw dara seem to be quite similar with only minor deviations. 
+
+### Correlation and stratification by length 
+
+Next, we looked at the correlation between Illumina and PacBio data. We performed both pearson and spearman correlation. When looking at the pearson results compared to spearman they look very unusual. One can't say that each sample is highest correlated with itself and some samples are highly correlated with all samples of all days (usually sample day 1 or 2) for both stratified and not stratified by length. Also, the scatterplot looks very unusual as for the different bins the summed up correlation is jumping up and down compared to heatmaps and scatterplots of spearman which look as expected. This can be explained by the fact that spearman correlation is more robust to outliers than spearman and doesn't assume a linear relationship which works better with our data. So we decided to only focus on the plots produced by the spearman correlation. 
+
+Also, it is of note to mention that we decided to cut our data into intervals of transcript length 1000 which results in the bin 1000-2000 containing the most transcripts and making them an irregular size which then needs to be taken into account as 9000-10000 f.e. then contains a smaller amount of transcripts the correlation calculation then is based on. But this evens out as both bambu and salmon (which we compare) have those bin sizes and in the scatterplots we sum the correlations up. But for other bin sizes one could probably also see slightly different heatmaps and scatterplots. Further, we did our analysis on the transcript and not on the gene level as we stratify it on the transcript length and this will be harder to do on the gene level and not as precise as one would need to use median transcript lengths. 
+
+So, looking at the heatmaps not stratified by length they look the same for all the NDR cutoffs but the correlations are smaller on the gene level which could maybe be explained by the fact the we sum up the transcripts for the genes thus resulting in fewer data and a smaller correlation. 
+
+The heatmaps for the length stratification again look similar between the 4 NDR cutoffs and show as expected highest correlation with their own sample between salmon and bambu as well as the replicates only with salmon-day3-rep1 standing out. This means that the individual samples between bambu and salmon do correlate well and are the most similar the their own sample in the other method and thus both methods seem to produce comparable results although the heatmaps and correlation aren't as pronounced. This may be due to noise and outliers which even the spearman correlation isn't robust to. 
+
+Lastly, looking at the scatterplot which again is almost the same for all 4 NDR cutoffs we have a clear trend of a better summed up correlation towards longer lengths but a very low correlation for short transcript lengths (<=700 bp). This is due to ..... and means that .... 
+
+### MDS 
+
+The MDS plots look again the same for all 4 NDR cutoffs and are comparable between Illumina and PacBio. MDS1 separates the samples in both methods by days and MDS2 by replicates. For Salmon the replicates are more spread out than for Bambu but the overall trend is the same with the differences being explained by the difference in method again showing that the raw (in this case count data) is comparable between the both methods. 
+
+All in all, this first part of our project gave an overview over the differences in the raw data between Illumina and PacBio and showed that the data has its differences but seems to be quite comparable especially when looking at the raw data differences as well as the correlation with there still being difficulties in shorter transcript lengths. To further compare the two methods more analyses need to be performed. 
+
+## Session Info
+
+```{r}
+sessionInfo()
+````

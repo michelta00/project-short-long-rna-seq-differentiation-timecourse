@@ -1,5 +1,5 @@
 ---
-title: "Comparison PacBio vs. Illumina"
+title: "Comparison PacBio vs. Illumina (counts)"
 author: "Marie-Claire Indilewitsch"
 date: today
 format: 
@@ -56,6 +56,18 @@ salmon_0.05_gene <- df_list_salmon$salmon_0.05_gene
 salmon_0.1_gene <- df_list_salmon$salmon_0.1_gene
 salmon_0.2_gene <- df_list_salmon$salmon_0.2_gene
 
+bambu_0.1_tpm <- df_list_bambu$bambu_0.1_tpm
+bambu_0.2_tpm <- df_list_bambu$bambu_0.2_tpm
+
+bambu_0.1_tpm_gene <- df_list_bambu$bambu_0.1_tpm_gene
+bambu_0.2_tpm_gene <- df_list_bambu$bambu_0.2_tpm_gene
+
+salmon_0.1_tpm <- df_list_salmon$salmon_0.1_tpm
+salmon_0.2_tpm <- df_list_salmon$salmon_0.2_tpm
+
+salmon_0.1_tpm_gene <- df_list_salmon$salmon_0.1_tpm_gene
+salmon_0.2_tpm_gene <- df_list_salmon$salmon_0.2_tpm_gene
+
 meta_samples <- df_list_meta$metadata
 ```
 
@@ -89,6 +101,7 @@ nrow(salmon_0.2_gene[which(rowSums(abs(difference4_gene)) < 60), ])/nrow(salmon_
 
 ```
 ## Histograms of differences 
+
 ```{r, warnings = FALSE}
 #only always performed on first column
 ggplot(difference1, aes(x = difference1[,1])) +
@@ -205,10 +218,10 @@ cor_0.05 <- cor(bambu_0.05, salmon_0.05)
 cor_0.1 <- cor(bambu_0.1, salmon_0.1)
 cor_0.2 <- cor(bambu_0.2, salmon_0.2)
 
-cor_0.025_gene <- cor(bambu_0.025_gene, salmon_0.025_gene)
-cor_0.05_gene <- cor(bambu_0.05_gene, salmon_0.05_gene)
-cor_0.1_gene <- cor(bambu_0.1_gene, salmon_0.1_gene)
-cor_0.2_gene <- cor(bambu_0.2_gene, salmon_0.2_gene)
+cor_0.025_gene <- cor(bambu_0.025_gene, salmon_0.025_gene, method = "spearman")
+cor_0.05_gene <- cor(bambu_0.05_gene, salmon_0.05_gene, method = "spearman")
+cor_0.1_gene <- cor(bambu_0.1_gene, salmon_0.1_gene, method = "spearman")
+cor_0.2_gene <- cor(bambu_0.2_gene, salmon_0.2_gene, method = "spearman")
 
 
 pheatmap(cor_0.025, cluster_rows = FALSE, cluster_cols = FALSE)
@@ -233,44 +246,44 @@ salmon_0.025_below_1000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quan
 bambu_0.025_1000_2000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_1000_2000$Name)
 salmon_0.025_1000_2000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_1000_2000$Name)
 
-bambu_0.025_2000_3000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_2000_3000$Name)
-salmon_0.025_2000_3000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_2000_3000$Name)
+bambu_0.025_2000_3000 <- subset(bambu_0.025, rownames(bambu_0.025) %in%  quant_2000_3000$Name)
+salmon_0.025_2000_3000 <- subset(salmon_0.025, rownames(salmon_0.025) %in%  quant_2000_3000$Name)
 
-bambu_0.025_3000_4000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_3000_4000$Name)
-salmon_0.025_3000_4000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_3000_4000$Name)
+bambu_0.025_3000_4000 <- subset(bambu_0.025, rownames(bambu_0.025) %in%  quant_3000_4000$Name)
+salmon_0.025_3000_4000 <- subset(salmon_0.025, rownames(salmon_0.025) %in%  quant_3000_4000$Name)
 
-bambu_0.025_4000_5000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_4000_5000$Name)
-salmon_0.025_4000_5000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_4000_5000$Name)
+bambu_0.025_4000_5000 <- subset(bambu_0.025, rownames(bambu_0.025) %in%  quant_4000_5000$Name)
+salmon_0.025_4000_5000 <- subset(salmon_0.025, rownames(salmon_0.025) %in%  quant_4000_5000$Name)
 
-bambu_0.025_5000_6000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_5000_6000$Name)
-salmon_0.025_5000_6000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_5000_6000$Name)
+bambu_0.025_5000_6000 <- subset(bambu_0.025, rownames(bambu_0.025) %in%  quant_5000_6000$Name)
+salmon_0.025_5000_6000 <- subset(salmon_0.025, rownames(salmon_0.025) %in%  quant_5000_6000$Name)
 
-bambu_0.025_6000_7000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_6000_7000$Name)
-salmon_0.025_6000_7000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_6000_7000$Name)
+bambu_0.025_6000_7000 <- subset(bambu_0.025, rownames(bambu_0.025) %in%  quant_6000_7000$Name)
+salmon_0.025_6000_7000 <- subset(salmon_0.025, rownames(salmon_0.025) %in%  quant_6000_7000$Name)
 
-bambu_0.025_7000_8000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_7000_8000$Name)
-salmon_0.025_7000_8000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_7000_8000$Name)
+bambu_0.025_7000_8000 <- subset(bambu_0.025, rownames(bambu_0.025) %in%  quant_7000_8000$Name)
+salmon_0.025_7000_8000 <- subset(salmon_0.025, rownames(salmon_0.025) %in%  quant_7000_8000$Name)
 
-bambu_0.025_8000_9000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_8000_9000$Name)
-salmon_0.025_8000_9000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_8000_9000$Name)
+bambu_0.025_8000_9000 <- subset(bambu_0.025, rownames(bambu_0.025) %in%  quant_8000_9000$Name)
+salmon_0.025_8000_9000 <- subset(salmon_0.025, rownames(salmon_0.025) %in%  quant_8000_9000$Name)
 
-bambu_0.025_9000_10000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_9000_10000$Name)
-salmon_0.025_9000_10000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_9000_10000$Name)
-
-
+bambu_0.025_9000_10000 <- subset(bambu_0.025, rownames(bambu_0.025) %in%  quant_9000_10000$Name)
+salmon_0.025_9000_10000 <- subset(salmon_0.025, rownames(salmon_0.025) %in%  quant_9000_10000$Name)
 
 
-cor_0.025_below_1000 <- cor(bambu_0.025_below_1000, salmon_0.025_below_1000)
-cor_0.025_1000_2000 <- cor(bambu_0.025_1000_2000, salmon_0.025_1000_2000)
-cor_0.025_2000_3000 <- cor(bambu_0.025_2000_3000, salmon_0.025_2000_3000)
-cor_0.025_3000_4000 <- cor(bambu_0.025_3000_4000, salmon_0.025_3000_4000)
-cor_0.025_4000_5000 <- cor(bambu_0.025_4000_5000, salmon_0.025_4000_5000)
 
-cor_0.025_5000_6000 <- cor(bambu_0.025_5000_6000, salmon_0.025_5000_6000)
-cor_0.025_6000_7000 <- cor(bambu_0.025_6000_7000, salmon_0.025_6000_7000)
-cor_0.025_7000_8000 <- cor(bambu_0.025_7000_8000, salmon_0.025_7000_8000)
-cor_0.025_8000_9000 <- cor(bambu_0.025_8000_9000, salmon_0.025_8000_9000)
-cor_0.025_9000_10000 <- cor(bambu_0.025_9000_10000, salmon_0.025_9000_10000)
+
+cor_0.025_below_1000 <- cor(bambu_0.025_below_1000, salmon_0.025_below_1000, method = "spearman")
+cor_0.025_1000_2000 <- cor(bambu_0.025_1000_2000, salmon_0.025_1000_2000, method = "spearman")
+cor_0.025_2000_3000 <- cor(bambu_0.025_2000_3000, salmon_0.025_2000_3000, method = "spearman")
+cor_0.025_3000_4000 <- cor(bambu_0.025_3000_4000, salmon_0.025_3000_4000, method = "spearman")
+cor_0.025_4000_5000 <- cor(bambu_0.025_4000_5000, salmon_0.025_4000_5000, method = "spearman")
+
+cor_0.025_5000_6000 <- cor(bambu_0.025_5000_6000, salmon_0.025_5000_6000, method = "spearman")
+cor_0.025_6000_7000 <- cor(bambu_0.025_6000_7000, salmon_0.025_6000_7000, method = "spearman")
+cor_0.025_7000_8000 <- cor(bambu_0.025_7000_8000, salmon_0.025_7000_8000, method = "spearman")
+cor_0.025_8000_9000 <- cor(bambu_0.025_8000_9000, salmon_0.025_8000_9000, method = "spearman")
+cor_0.025_9000_10000 <- cor(bambu_0.025_9000_10000, salmon_0.025_9000_10000, method = "spearman")
 
 sum1 <- sum(as.matrix(cor_0.025_below_1000))
 sum2 <- sum(as.matrix(cor_0.025_1000_2000))
@@ -347,17 +360,17 @@ salmon_0.05_9000_10000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_9
 
 
 
-cor_0.05_below_1000 <- cor(bambu_0.05_below_1000, salmon_0.05_below_1000)
-cor_0.05_1000_2000 <- cor(bambu_0.05_1000_2000, salmon_0.05_1000_2000)
-cor_0.05_2000_3000 <- cor(bambu_0.05_2000_3000, salmon_0.05_2000_3000)
-cor_0.05_3000_4000 <- cor(bambu_0.05_3000_4000, salmon_0.05_3000_4000)
-cor_0.05_4000_5000 <- cor(bambu_0.05_4000_5000, salmon_0.05_4000_5000)
+cor_0.05_below_1000 <- cor(bambu_0.05_below_1000, salmon_0.05_below_1000, method = "spearman")
+cor_0.05_1000_2000 <- cor(bambu_0.05_1000_2000, salmon_0.05_1000_2000, method = "spearman")
+cor_0.05_2000_3000 <- cor(bambu_0.05_2000_3000, salmon_0.05_2000_3000, method = "spearman")
+cor_0.05_3000_4000 <- cor(bambu_0.05_3000_4000, salmon_0.05_3000_4000, method = "spearman")
+cor_0.05_4000_5000 <- cor(bambu_0.05_4000_5000, salmon_0.05_4000_5000, method = "spearman")
 
-cor_0.05_5000_6000 <- cor(bambu_0.05_5000_6000, salmon_0.05_5000_6000)
-cor_0.05_6000_7000 <- cor(bambu_0.05_6000_7000, salmon_0.05_6000_7000)
-cor_0.05_7000_8000 <- cor(bambu_0.05_7000_8000, salmon_0.05_7000_8000)
-cor_0.05_8000_9000 <- cor(bambu_0.05_8000_9000, salmon_0.05_8000_9000)
-cor_0.05_9000_10000 <- cor(bambu_0.05_9000_10000, salmon_0.05_9000_10000)
+cor_0.05_5000_6000 <- cor(bambu_0.05_5000_6000, salmon_0.05_5000_6000, method = "spearman")
+cor_0.05_6000_7000 <- cor(bambu_0.05_6000_7000, salmon_0.05_6000_7000, method = "spearman")
+cor_0.05_7000_8000 <- cor(bambu_0.05_7000_8000, salmon_0.05_7000_8000, method = "spearman")
+cor_0.05_8000_9000 <- cor(bambu_0.05_8000_9000, salmon_0.05_8000_9000, method = "spearman")
+cor_0.05_9000_10000 <- cor(bambu_0.05_9000_10000, salmon_0.05_9000_10000, method = "spearman")
 
 
 pheatmap(cor_0.05_below_1000, cluster_rows = FALSE, cluster_cols = FALSE)
@@ -432,17 +445,17 @@ salmon_0.1_9000_10000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_9000
 
 
 
-cor_0.1_below_1000 <- cor(bambu_0.1_below_1000, salmon_0.1_below_1000)
-cor_0.1_1000_2000 <- cor(bambu_0.1_1000_2000, salmon_0.1_1000_2000)
-cor_0.1_2000_3000 <- cor(bambu_0.1_2000_3000, salmon_0.1_2000_3000)
-cor_0.1_3000_4000 <- cor(bambu_0.1_3000_4000, salmon_0.1_3000_4000)
-cor_0.1_4000_5000 <- cor(bambu_0.1_4000_5000, salmon_0.1_4000_5000)
+cor_0.1_below_1000 <- cor(bambu_0.1_below_1000, salmon_0.1_below_1000, method = "spearman")
+cor_0.1_1000_2000 <- cor(bambu_0.1_1000_2000, salmon_0.1_1000_2000, method = "spearman")
+cor_0.1_2000_3000 <- cor(bambu_0.1_2000_3000, salmon_0.1_2000_3000, method = "spearman")
+cor_0.1_3000_4000 <- cor(bambu_0.1_3000_4000, salmon_0.1_3000_4000, method = "spearman")
+cor_0.1_4000_5000 <- cor(bambu_0.1_4000_5000, salmon_0.1_4000_5000, method = "spearman")
 
-cor_0.1_5000_6000 <- cor(bambu_0.1_5000_6000, salmon_0.1_5000_6000)
-cor_0.1_6000_7000 <- cor(bambu_0.1_6000_7000, salmon_0.1_6000_7000)
-cor_0.1_7000_8000 <- cor(bambu_0.1_7000_8000, salmon_0.1_7000_8000)
-cor_0.1_8000_9000 <- cor(bambu_0.1_8000_9000, salmon_0.1_8000_9000)
-cor_0.1_9000_10000 <- cor(bambu_0.1_9000_10000, salmon_0.1_9000_10000)
+cor_0.1_5000_6000 <- cor(bambu_0.1_5000_6000, salmon_0.1_5000_6000, method = "spearman")
+cor_0.1_6000_7000 <- cor(bambu_0.1_6000_7000, salmon_0.1_6000_7000, method = "spearman")
+cor_0.1_7000_8000 <- cor(bambu_0.1_7000_8000, salmon_0.1_7000_8000, method = "spearman")
+cor_0.1_8000_9000 <- cor(bambu_0.1_8000_9000, salmon_0.1_8000_9000, method = "spearman")
+cor_0.1_9000_10000 <- cor(bambu_0.1_9000_10000, salmon_0.1_9000_10000, method = "spearman")
 
 
 pheatmap(cor_0.1_below_1000, cluster_rows = FALSE, cluster_cols = FALSE)
@@ -516,16 +529,16 @@ salmon_0.2_9000_10000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_9000
 
 
 
-cor_0.2_below_1000 <- cor(bambu_0.2_below_1000, salmon_0.2_below_1000)
-cor_0.2_1000_2000 <- cor(bambu_0.2_1000_2000, salmon_0.2_1000_2000)
-cor_0.2_2000_3000 <- cor(bambu_0.2_2000_3000, salmon_0.2_2000_3000)
-cor_0.2_3000_4000 <- cor(bambu_0.2_3000_4000, salmon_0.2_3000_4000)
-cor_0.2_4000_5000 <- cor(bambu_0.2_4000_5000, salmon_0.2_4000_5000)
-cor_0.2_5000_6000 <- cor(bambu_0.2_5000_6000, salmon_0.2_5000_6000)
-cor_0.2_6000_7000 <- cor(bambu_0.2_6000_7000, salmon_0.2_6000_7000)
-cor_0.2_7000_8000 <- cor(bambu_0.2_7000_8000, salmon_0.2_7000_8000)
-cor_0.2_8000_9000 <- cor(bambu_0.2_8000_9000, salmon_0.2_8000_9000)
-cor_0.2_9000_10000 <- cor(bambu_0.2_9000_10000, salmon_0.2_9000_10000)
+cor_0.2_below_1000 <- cor(bambu_0.2_below_1000, salmon_0.2_below_1000, method = "spearman")
+cor_0.2_1000_2000 <- cor(bambu_0.2_1000_2000, salmon_0.2_1000_2000, method = "spearman")
+cor_0.2_2000_3000 <- cor(bambu_0.2_2000_3000, salmon_0.2_2000_3000, method = "spearman")
+cor_0.2_3000_4000 <- cor(bambu_0.2_3000_4000, salmon_0.2_3000_4000, method = "spearman")
+cor_0.2_4000_5000 <- cor(bambu_0.2_4000_5000, salmon_0.2_4000_5000, method = "spearman")
+cor_0.2_5000_6000 <- cor(bambu_0.2_5000_6000, salmon_0.2_5000_6000, method = "spearman")
+cor_0.2_6000_7000 <- cor(bambu_0.2_6000_7000, salmon_0.2_6000_7000, method = "spearman")
+cor_0.2_7000_8000 <- cor(bambu_0.2_7000_8000, salmon_0.2_7000_8000, method = "spearman")
+cor_0.2_8000_9000 <- cor(bambu_0.2_8000_9000, salmon_0.2_8000_9000, method = "spearman")
+cor_0.2_9000_10000 <- cor(bambu_0.2_9000_10000, salmon_0.2_9000_10000, method = "spearman")
 
 pheatmap(cor_0.2_below_1000, cluster_rows = FALSE, cluster_cols = FALSE)
 pheatmap(cor_0.2_1000_2000, cluster_rows = FALSE, cluster_cols = FALSE)
@@ -563,165 +576,68 @@ ggplot(sums_df_0.2, aes(x = Range, y = Sum)) +
   stat_smooth(method="lm", col = "red", lty = 2)
 ```
 
-## MDS 
+## Rest differences for tpm data 
 
 ```{r}
+diff_3_tpm <- salmon_0.1_tpm - bambu_0.1_tpm
+diff_4_tpm <-  salmon_0.2_tpm - bambu_0.2_tpm
 
-group <- factor(df_list_meta$metadata$time)
-
-## Salmon 0.025
-y_salmon_0.025 <- DGEList(counts = salmon_0.025, group = group)
-
-mds <- plotMDS(y_salmon_0.025, plot = FALSE) # uses plotMDS.DGEList
-
-df <- data.frame(
-  MDS1 = mds$x,
-  MDS2 = mds$y,
-  group = group,
-  shortname = df_list_meta$metadata$condition
-)
-ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
-  geom_point(size = 4) +
-  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+diff_3_tpm_gene <-  salmon_0.1_tpm_gene - bambu_0.1_tpm_gene
+diff_4_tpm_gene <-  salmon_0.2_tpm_gene - bambu_0.2_tpm_gene
+ggplot(diff_3_tpm, aes(x = diff_3_tpm[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)+
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
-  labs(title = "MDS Salmon 0.025", color = "Group") +
-  scale_color_viridis_d()
+  scale_color_viridis() +
+  labs(title = "Difference between Bambu and salmon 0.1 tpm", x = "difference", y = "freq")
 
-## Bambu 0.025
-y_bambu_0.025 <- DGEList(counts = bambu_0.025, group = group)
 
-mds <- plotMDS(y_bambu_0.025, plot = FALSE) # uses plotMDS.DGEList
-
-df <- data.frame(
-  MDS1 = mds$x,
-  MDS2 = mds$y,
-  group = group,
-  shortname = df_list_meta$metadata$condition
-)
-ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
-  geom_point(size = 4) +
-  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+ggplot(diff_4_tpm, aes(x = diff_4_tpm[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)+
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
-  labs(title = "MDS Bambu 0.025", color = "Group") +
-  scale_color_viridis_d()
+  scale_color_viridis() +
+  labs(title = "Difference between Bambu and salmon 0.2 tpm", x = "difference", y = "freq")
 
-
-## Salmon 0.05
-y_salmon_0.05 <- DGEList(counts = salmon_0.05, group = group)
-
-mds <- plotMDS(y_salmon_0.05, plot = FALSE) # uses plotMDS.DGEList
-
-df <- data.frame(
-  MDS1 = mds$x,
-  MDS2 = mds$y,
-  group = group,
-  shortname = df_list_meta$metadata$condition
-)
-ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
-  geom_point(size = 4) +
-  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+ggplot(diff_3_tpm_gene, aes(x = diff_3_tpm_gene[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)+
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
-  labs(title = "MDS Salmon 0.05", color = "Group") +
-  scale_color_viridis_d()
+  scale_color_viridis() +
+  labs(title = "Difference between Bambu and salmon 0.1 gene level tpm ", x = "difference", y = "freq")
 
-## Bambu 0.05
-y_bambu_0.05 <- DGEList(counts = bambu_0.05, group = group)
 
-mds <- plotMDS(y_bambu_0.05, plot = FALSE) # uses plotMDS.DGEList
-
-df <- data.frame(
-  MDS1 = mds$x,
-  MDS2 = mds$y,
-  group = group,
-  shortname = df_list_meta$metadata$condition
-)
-ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
-  geom_point(size = 4) +
-  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+ggplot(diff_4_tpm_gene, aes(x = diff_4_tpm_gene[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)+
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
-  labs(title = "MDS Bambu 0.05", color = "Group") +
-  scale_color_viridis_d()
-
-## Salmon 0.1
-y_salmon_0.1 <- DGEList(counts = salmon_0.1, group = group)
-
-mds <- plotMDS(y_salmon_0.1, plot = FALSE) # uses plotMDS.DGEList
-
-df <- data.frame(
-  MDS1 = mds$x,
-  MDS2 = mds$y,
-  group = group,
-  shortname = df_list_meta$metadata$condition
-)
-ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
-  geom_point(size = 4) +
-  geom_text(aes(label = shortname), vjust = -1, size = 3) +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  labs(title = "MDS Salmon 0.1", color = "Group") +
-  scale_color_viridis_d()
-
-## Bambu 0.1
-y_bambu_0.1 <- DGEList(counts = bambu_0.1, group = group)
-
-mds <- plotMDS(y_bambu_0.1, plot = FALSE) # uses plotMDS.DGEList
-
-df <- data.frame(
-  MDS1 = mds$x,
-  MDS2 = mds$y,
-  group = group,
-  shortname = df_list_meta$metadata$condition
-)
-ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
-  geom_point(size = 4) +
-  geom_text(aes(label = shortname), vjust = -1, size = 3) +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  labs(title = "MDS Bambu 0.1", color = "Group") +
-  scale_color_viridis_d()
-
-## Salmon 0.2
-y_salmon_0.2 <- DGEList(counts = salmon_0.2, group = group)
-
-mds <- plotMDS(y_salmon_0.2, plot = FALSE) # uses plotMDS.DGEList
-
-df <- data.frame(
-  MDS1 = mds$x,
-  MDS2 = mds$y,
-  group = group,
-  shortname = df_list_meta$metadata$condition
-)
-ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
-  geom_point(size = 4) +
-  geom_text(aes(label = shortname), vjust = -1, size = 3) +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  labs(title = "MDS Salmon 0.2", color = "Group") +
-  scale_color_viridis_d()
-
-## Bambu 0.2
-y_bambu_0.2 <- DGEList(counts = bambu_0.2, group = group)
-
-mds <- plotMDS(y_bambu_0.2, plot = FALSE) # uses plotMDS.DGEList
-
-df <- data.frame(
-  MDS1 = mds$x,
-  MDS2 = mds$y,
-  group = group,
-  shortname = df_list_meta$metadata$condition
-)
-ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
-  geom_point(size = 4) +
-  geom_text(aes(label = shortname), vjust = -1, size = 3) +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  labs(title = "MDS Bambu 0.2", color = "Group") +
-  scale_color_viridis_d()
+  scale_color_viridis() +
+  labs(title = "Difference between Bambu and salmon 0.2 gene level tpm", x = "difference", y = "freq")
 
 
+```
+
+```{r}
+#not stratified by length rest 
+cor_0.05 <- cor(bambu_0.05, salmon_0.05, method = "spearman")
+cor_0.1 <- cor(bambu_0.1, salmon_0.1, method = "spearman")
+cor_0.2 <- cor(bambu_0.2, salmon_0.2, method = "spearman")
+
+cor_0.025_gene <- cor(bambu_0.025_gene, salmon_0.025_gene, method = "spearman")
+cor_0.05_gene <- cor(bambu_0.05_gene, salmon_0.05_gene, method = "spearman")
+cor_0.1_gene <- cor(bambu_0.1_gene, salmon_0.1_gene, method = "spearman")
+cor_0.2_gene <- cor(bambu_0.2_gene, salmon_0.2_gene, method = "spearman")
+
+pheatmap(cor_0.05, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.1, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.2, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_gene, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.05_gene, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.1_gene, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.2_gene, cluster_rows = FALSE, cluster_cols = FALSE)
 
 ```
