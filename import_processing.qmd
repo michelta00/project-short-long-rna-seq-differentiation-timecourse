@@ -204,7 +204,7 @@ dim(salmon_0.1_tpm) == dim(bambu_0.1_tpm)
 dim(salmon_0.2_tpm) == dim(bambu_0.2_tpm)
 ```
 
-## Data proprocessing
+## Data processing
 
 ### Save control sequnces
 
