@@ -148,7 +148,8 @@ plot_salmon <- ggplot(data = df_salmon,
        )) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
   scale_fill_viridis_d() +
   labs(title = "Illumina+Salmon",
        x = "Day",
@@ -167,7 +168,8 @@ plot_bambu <- ggplot(data = df_bambu,
        )) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
   scale_fill_viridis_d() +
   labs(title = "PacBio+Bambu",
        x = "Day",
@@ -196,7 +198,8 @@ plot_salmon <- ggplot(data = df_salmon,
        )) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
   scale_fill_viridis_d() +
   labs(title = "Illumina+Salmon",
        x = "Day",
@@ -215,7 +218,8 @@ plot_bambu <- ggplot(data = df_bambu,
        )) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
   scale_fill_viridis_d() +
   labs(title = "PacBio+Bambu",
        x = "Day",
@@ -244,7 +248,8 @@ plot_salmon <- ggplot(data = df_salmon,
        )) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
   scale_fill_viridis_d() +
   labs(title = "Illumina+Salmon",
        x = "Day",
@@ -263,7 +268,8 @@ plot_bambu <- ggplot(data = df_bambu,
        )) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
   scale_fill_viridis_d() +
   labs(title = "PacBio+Bambu",
        x = "Day",
@@ -292,7 +298,8 @@ plot_salmon <- ggplot(data = df_salmon,
        )) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
   scale_fill_viridis_d() +
   labs(title = "Illumina+Salmon",
        x = "Day",
@@ -311,7 +318,8 @@ plot_bambu <- ggplot(data = df_bambu,
        )) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
   scale_fill_viridis_d() +
   labs(title = "PacBio+Bambu",
        x = "Day",
@@ -487,7 +495,8 @@ plot_dge_0.2_salmon <- ggplot(
   ) +
   scale_color_viridis_d() +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
 
 ## Bambu
 fit <- glmFit(y_bambu_0.2, design)
