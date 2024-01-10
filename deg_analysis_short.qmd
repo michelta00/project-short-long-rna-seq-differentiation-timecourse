@@ -26,7 +26,14 @@ The differential gene expression and gene set analyses were performed in RStudio
 
 After an exploratory data analysis to compare the long- and short-read counts/TPMs, a differential gene expression analysis was conducted. Here the aim was twofold: first, the aim was to identify genes that are differentially expressed over the course of time, so over the course of the 5 days at which samples have been generated; second, the aim was to compare the results of the differential gene expression analysis of the Illumina+Salmon data (short-read data) with the results of the PacBio+Bambu data (long-read data). To do so, in total 8 different count data frames were analyzed. For each of the 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), there are two different count data frames, one derived from Illumina+Salmon and one derived from PacBio+Bambu. For the analysis of differentially expressed genes, a standard pipeline from the R package `edgeR` (Robinson *et al*, 2010, R package version 3.42.4) was used. 
 
-First, `DGEList` objects were created from the 8 count data frames and subsequent filtered was performed using the `filterByExpr` function. The function removes genes that do not have a sufficient count in a worthwhile number of samples. Next, scaling factors for the library sizes were computed first using the function `calcNormFactors` to obtain normalized effective library sizes. Following, the function `estimateDisp` was applied on the `DGEList` objects to calculate posterior dispersion estimates. To do so, the following formula was used to create a design matrix: `~ day`. Day specifies the day at which each sample was created, so days 0 to 5. Thus, the design matrix was created in a way that the first time point, day 0, is the baseline (intercept of the model). The next step was to fit a negative binomial generalized log-linear model to each gene. This was done using the function `glmFit`. Finally, a likelihood ratio test was performed using the function `glmLRT`. Here, the full model is compared to a reduced model which has values of zero for all coefficients but the baseline, so for days 1 to 5. For each gene, this computes p-values and other test statistics of the likelihood ratio test that were used afterwards to identify genes that show statistical significant differential expression. To find these genes, the function `decideTests.DGELRT` adjusted the p-values by the Benjamini-Hochberg method (Benjamini and Hochberg, 1995) and then filtered differentially expressed genes by a significance threshold of 0.01.
+Before performing the differential expression analysis itself, some genes of interest were investigated. These genes are targeted by the directed differentiation treatment the cells underwent, and therefore might show changes in their expression over time. Here, the following genes were investigated:
+
+- WNT2 (Wnt family member 2)
+- CTNNB1 (catenin beta 1)
+- SMAD1 (SMAD family member 1)
+- ETV2 (ETS variant transcription factor 2)
+
+Afterwards, the differential gene expression analysis followed. First, `DGEList` objects were created from the 8 count data frames and subsequent filtered was performed using the `filterByExpr` function. The function removes genes that do not have a sufficient count in a worthwhile number of samples. Next, scaling factors for the library sizes were computed first using the function `calcNormFactors` to obtain normalized effective library sizes. Following, the function `estimateDisp` was applied on the `DGEList` objects to calculate posterior dispersion estimates. To do so, the following formula was used to create a design matrix: `~ day`. Day specifies the day at which each sample was created, so days 0 to 5. Thus, the design matrix was created in a way that the first time point, day 0, is the baseline (intercept of the model). The next step was to fit a negative binomial generalized log-linear model to each gene. This was done using the function `glmFit`. Finally, a likelihood ratio test was performed using the function `glmLRT`. Here, the full model is compared to a reduced model which has values of zero for all coefficients but the baseline, so for days 1 to 5. For each gene, this computes p-values and other test statistics of the likelihood ratio test that were used afterwards to identify genes that show statistical significant differential expression. To find these genes, the function `decideTests.DGELRT` adjusted the p-values by the Benjamini-Hochberg method (Benjamini and Hochberg, 1995) and then filtered differentially expressed genes by a significance threshold of 0.01.
 
 To compare the results for Illumina+Salmon with the results for PacBio+Bambu, an `UpSetR` (Gehlenborg, 2019, R package version 1.4.0) plot was created for each NDR threshold. This plot overlayed the genes called differentially expressed for the two different cases. Moreover, the p-values and logFC values (comparing day 0 and day 5) for each gene were compared using simple scatter plots.
 
@@ -62,6 +69,7 @@ library(gplots)
 library(fgsea)
 library(msigdbr)
 library(patchwork)
+library(cowplot)
 ```
 
 ### Load data
@@ -71,7 +79,7 @@ The data is loaded from RDS-objects that have been created with the `import_proc
 1. Illumina sequencing and Salmon quantification (short-read)
 2. PacBio sequencing and Bambu quantification (long-read)
 
-In total, this adds up to 8 different data frames. Each of these data frames contains 11 samples, which are replicates from one of six different time points. Each time point has 1-3 replicates. As stated above, in this file only the results of the 0.2 NDR threshold data is shown.
+In total, this adds up to 8 different data frames. Each of these data frames contains 11 samples, which are replicates from one of six different time points. Each time point has 1-3 replicates. As stated above, in this file only the results of the 0.2 NDR threshold data is shown. For the differential gene expression, the counts are loaded. For the investigation of genes of interest, the TPMs are loaded.
 
 ```{r}
 df_list_bambu <- readRDS("../bambu.rds")
@@ -83,7 +91,241 @@ df_list_meta <- readRDS("../meta.rds")
 bambu_0.2_gene <- df_list_bambu$bambu_0.2_gene
 salmon_0.2_gene <- df_list_salmon$salmon_0.2_gene
 (meta_samples <- df_list_meta$metadata)
+
+bambu_0.2_tpm_gene <- df_list_bambu$bambu_0.2_tpm_gene
+salmon_0.2_tpm_gene <- df_list_salmon$salmon_0.2_tpm_gene
 ```
+### Genes of Interest
+
+To investigate the expression changes in the genes of interest (see above), their average expression at each time point was computed and the plotted.
+
+```{r}
+# calculate average expression per time point for Salmon and Bambu
+
+## Salmon
+# calculate the average expression of each gene at each time point (average of the replicates)
+avg_expr_salmon <- as.data.frame(sapply(sort(unique(meta_samples$time))[c(1,4,6)], function(time) {
+  rowMeans(salmon_0.2_tpm_gene[, which(meta_samples$time == time)])
+}))
+
+# for time points 1, 2 and 4, only one replicate exists
+avg_expr_salmon$V4 <- unlist(as.vector(salmon_0.2_tpm_gene[, which(meta_samples$time == 1)]))
+avg_expr_salmon$V5 <- unlist(as.vector(salmon_0.2_tpm_gene[, which(meta_samples$time == 2)]))
+avg_expr_salmon$V6 <- unlist(as.vector(salmon_0.2_tpm_gene[, which(meta_samples$time == 4)]))
+
+avg_expr_salmon <- avg_expr_salmon[, c(1,4,5,2,6,3)]
+
+colnames(avg_expr_salmon) <- sort(unique(meta_samples$time))
+
+## Bambu
+# calculate the average expression of each gene at each time point (average of the replicates)
+avg_expr_bambu <- as.data.frame(sapply(sort(unique(meta_samples$time))[c(1,4,6)], function(time) {
+  rowMeans(bambu_0.2_tpm_gene[, which(meta_samples$time == time)])
+}))
+
+# for time points 1, 2 and 4, only one replicate exists
+avg_expr_bambu$V4 <- unlist(as.vector(bambu_0.2_tpm_gene[, which(meta_samples$time == 1)]))
+avg_expr_bambu$V5 <- unlist(as.vector(bambu_0.2_tpm_gene[, which(meta_samples$time == 2)]))
+avg_expr_bambu$V6 <- unlist(as.vector(bambu_0.2_tpm_gene[, which(meta_samples$time == 4)]))
+
+avg_expr_bambu <- avg_expr_bambu[, c(1,4,5,2,6,3)]
+
+colnames(avg_expr_bambu) <- sort(unique(meta_samples$time))
+```
+
+```{r}
+# WNT2
+
+## Salmon
+tpm_salmon <- unname(unlist(avg_expr_salmon["ENSG00000105989.10", ]))
+df_salmon <- data.frame(tpm = tpm_salmon, time = c(0, 1, 2, 3, 4, 5))
+
+plot_salmon <- ggplot(data = df_salmon,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "Illumina+Salmon",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+## Bambu
+tpm_bambu <- unname(unlist(avg_expr_bambu["ENSG00000105989.10", ]))
+df_bambu <- data.frame(tpm = tpm_bambu, time = c(0, 1, 2, 3, 4, 5))
+
+plot_bambu <- ggplot(data = df_bambu,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "PacBio+Bambu",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+title <- ggdraw() + draw_label("TPM of WNT2 (Wnt family member 2)", fontface='bold')
+p <- plot_grid(plot_bambu, plot_salmon, ncol=2)
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+The first gene investigated is Wnt2 (Wnt family member 2). This gene was targeted by the treatment on days 0 and 1. Here, the addition of GSKi activated Wnt-signaling which in turn activated B-catenin providing transcriptional regulation. The plot above shows a general increase in Wnt2 expression over the time course, however, especially in the Salmon data, low (or no) expression is detected in the first days (days 0 - 2).
+
+```{r}
+# CTNNB1
+
+## Salmon
+tpm_salmon <- unname(unlist(avg_expr_salmon["ENSG00000168036.18", ]))
+df_salmon <- data.frame(tpm = tpm_salmon, time = c(0, 1, 2, 3, 4, 5))
+
+plot_salmon <- ggplot(data = df_salmon,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "Illumina+Salmon",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+## Bambu
+tpm_bambu <- unname(unlist(avg_expr_bambu["ENSG00000168036.18", ]))
+df_bambu <- data.frame(tpm = tpm_bambu, time = c(0, 1, 2, 3, 4, 5))
+
+plot_bambu <- ggplot(data = df_bambu,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "PacBio+Bambu",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+title <- ggdraw() + draw_label("TPM of CTNNB1 (catenin beta 1)", fontface='bold')
+p <- plot_grid(plot_bambu, plot_salmon, ncol=2)
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+The next gene of interest is CTNNB1 (catenin beta 1), which is activated by Wnt-signalling. Here, a trend is visible showing an increase in expression in the first days, and then the expression reaches a plateau for the last days. Interestingly, even though CTNNB1 depends on the activation of Wnt-signalling, raising expression levels could be detected for CTNNB1 before Wnt2.
+
+```{r}
+# SMAD1
+
+## Salmon
+tpm_salmon <- unname(unlist(avg_expr_salmon["ENSG00000170365.10", ]))
+df_salmon <- data.frame(tpm = tpm_salmon, time = c(0, 1, 2, 3, 4, 5))
+
+plot_salmon <- ggplot(data = df_salmon,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "Illumina+Salmon",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+## Bambu
+tpm_bambu <- unname(unlist(avg_expr_bambu["ENSG00000170365.10", ]))
+df_bambu <- data.frame(tpm = tpm_bambu, time = c(0, 1, 2, 3, 4, 5))
+
+plot_bambu <- ggplot(data = df_bambu,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "PacBio+Bambu",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+title <- ggdraw() + draw_label("TPM of SMAD1 (SMAD family member 1)", fontface='bold')
+p <- plot_grid(plot_bambu, plot_salmon, ncol=2)
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+On days 3 - 5, the treatment continues with the addition of BMP4 and VEGF. BMP4 induces the transition of mesodermal cells into endothelial lineages through usage of upstream Indian-Hedgehog signaling and downstream Smad signaling. Therefore, the gene SMAD1 (SMAD family member 1) was investigated next. The plot above shows slight increase in SMAD1 expression during the first days, and then more or less constant expression. These observations are surprising since BMP4 is only added starting from day 3.
+
+```{r}
+# ETV2
+
+## Salmon
+tpm_salmon <- unname(unlist(avg_expr_salmon["ENSG00000105672.15", ]))
+df_salmon <- data.frame(tpm = tpm_salmon, time = c(0, 1, 2, 3, 4, 5))
+
+plot_salmon <- ggplot(data = df_salmon,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "Illumina+Salmon",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+## Bambu
+tpm_bambu <- unname(unlist(avg_expr_bambu["ENSG00000105672.15", ]))
+df_bambu <- data.frame(tpm = tpm_bambu, time = c(0, 1, 2, 3, 4, 5))
+
+plot_bambu <- ggplot(data = df_bambu,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d() +
+  labs(title = "PacBio+Bambu",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+title <- ggdraw() + draw_label("TPM of ETV2 (ETS variant transcription factor 2)", fontface='bold')
+p <- plot_grid(plot_bambu, plot_salmon, ncol=2)
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+Lastly, the gene ETV2 (ETS variant transcription factor 2) was investigated. It is activated due to the addition of VEGF which is added starting from day 3 as described above. Here, almost no expression can be detected before day 3, followed by a major increase on day 3 and decreasing expression on days 4 and 5.
+
+When comparing the expression levels from the Illumina+Salmon data and from the PacBio+Bambu data, the general trend of the expression levels seem to be similar.
 
 ### Create DGEList objects and filter expressed genes
 
@@ -500,8 +742,6 @@ In general, the terms that were found to be significant by the gene set analysis
 ```{r}
 sessionInfo()
 ```
-
-
 
 
 
