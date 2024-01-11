@@ -16,6 +16,10 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Methods
+
+Spike-ins are synthetic RNA fragments of known sequence and concentration added to RNA-seq for calibration and control. The table `lexogen.tsv` contains the known concentrations [fmol/µL] and the the molar mass [g/mol] of the spike-ins used in the experiment. The table `PacBio_dev_team_revio_samples.xlsx` contains information about the quantity and the different mixes of the spike-ins used based on the experiment date and replicate. The mass concentration  [fg/µL] is linearly correlated to the length of the RNA fragment and is the product of these two quantities. It is plotted against the TPM measured from RNA sequencing for Illumina+Salmon and PacBio+Bambu data. Furthermore, the TPM from llumina+Salmon and PacBio+Bambu are plotted against each other.
+
 ## Load packages
 
 ```{r message=FALSE, warning=FALSE}
@@ -33,10 +37,9 @@ pacbio <- read_excel("PacBio_dev_team_revio_samples.xlsx")
 lexogen <- read.table(file = "lexogen_master.tsv", sep = "\t", header=TRUE)
 df_list_bambu <- readRDS("./bambu.rds")
 df_list_salmon <- readRDS("./salmon.rds")
-df_list_meta <- readRDS("./meta.rds")
 ```
 
-### pike-ins
+### Spike-ins
 ```{r}
 spike_in_ids <- lexogen$transcript_id
 pacbio[, c("Day of the protocol", "spike in used*")]
@@ -53,21 +56,15 @@ bambu_0.1_spike <- df_list_bambu$bambu_0.1_tpm_ctrl[spike_in_ids,]
 bambu_0.2_spike <- df_list_bambu$bambu_0.2_tpm_ctrl[spike_in_ids,]
 ```
 
-The spike ins used differed based on the days - on day 0 - e1 was used and on day 5 - e2. The dataframe `lexogen` contains the concentrations of the transcripts based on the number of the spike-in. If we divide each row of the counts matrix by the concentration of the spike-in in the sample based on the day - it should be roughly the same number in each column of the row.
-
-```{r}
-salmon_0.025_spike_day_0 <- subset(salmon_0.025_spike, select = grepl("day0", names(salmon_0.025_spike)))
-salmon_0.025_spike_day_0 / lexogen$molarity_e1_fmoles_microliter / salmon_0.025_spike_day_0[1, 1]
-
-length(lexogen$molarity_e1_fmoles_microliter)
-dim(salmon_0.025_spike_day_0)
-```
-
+The spike ins used differed based on the days - on day 0 - e1 was used and on day 5 - e2. 
 
 ## Plotting
 
 ### NDR 0.025
+
 #### Salmon/Bambu against real concentration
+
+Here we assume that there is linear relationship between the mass concentration and the TPM. 
 
 ```{r}
 salmon_0.025_spike_day_0 <- subset(salmon_0.025_spike, select = grepl("day0", names(salmon_0.025_spike)))
@@ -78,16 +75,18 @@ pacbio[, c("Day of the protocol", "amount added")]
 
 # For the day 0 replicate 3 - data is missing. I assume 2 was added.
 salmon_0.025_spike_day_0 <- salmon_0.025_spike_day_0 / 2
-salmon_0.025_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter
+salmon_0.025_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter * lexogen$mw_g_mol 
 
 # For the day 5 replicates 2, 3 - 2. 
 salmon_0.025_spike_day_5[, 2:3] <- salmon_0.025_spike_day_5[, 2:3] / 2
-salmon_0.025_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter
+salmon_0.025_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter * lexogen$mw_g_mol
+
+
 
 # Day 0
 day0.rep1 <- ggplot(data = salmon_0.025_spike_day_0, mapping = aes(x = salmon_0.025_spike_day_0$spike_in_conc, y = salmon_0.025_spike_day_0$`0.025_salmon_day0-rep1`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -95,7 +94,7 @@ day0.rep1 <- ggplot(data = salmon_0.025_spike_day_0, mapping = aes(x = salmon_0.
 
 day0.rep2 <- ggplot(data = salmon_0.025_spike_day_0, mapping = aes(x = salmon_0.025_spike_day_0$spike_in_conc, y = salmon_0.025_spike_day_0$`0.025_salmon_day0-rep2`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -103,7 +102,7 @@ day0.rep2 <- ggplot(data = salmon_0.025_spike_day_0, mapping = aes(x = salmon_0.
 
 day0.rep3 <- ggplot(data = salmon_0.025_spike_day_0, mapping = aes(x = salmon_0.025_spike_day_0$spike_in_conc, y = salmon_0.025_spike_day_0$`0.025_salmon_day0-rep3`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -112,7 +111,7 @@ day0.rep3 <- ggplot(data = salmon_0.025_spike_day_0, mapping = aes(x = salmon_0.
 # Day 5
 day5.rep1 <- ggplot(data = salmon_0.025_spike_day_5, mapping = aes(x = salmon_0.025_spike_day_5$spike_in_conc, y = salmon_0.025_spike_day_5$`0.025_salmon_day5-rep1`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -120,15 +119,17 @@ day5.rep1 <- ggplot(data = salmon_0.025_spike_day_5, mapping = aes(x = salmon_0.
 
 day5.rep2 <- ggplot(data = salmon_0.025_spike_day_5, mapping = aes(x = salmon_0.025_spike_day_5$spike_in_conc, y = salmon_0.025_spike_day_5$`0.025_salmon_day5-rep2`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_smooth(method='lm', formula= y~x)
 
+
+salmon_0.025_spike_day_5$highlight <- ifelse(rownames(salmon_0.025_spike_day_5) =="SIRV311" , "highlight", "normal")
 day5.rep3 <- ggplot(data = salmon_0.025_spike_day_5, mapping = aes(x = salmon_0.025_spike_day_5$spike_in_conc, y = salmon_0.025_spike_day_5$`0.025_salmon_day5-rep3`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -137,7 +138,19 @@ day5.rep3 <- ggplot(data = salmon_0.025_spike_day_5, mapping = aes(x = salmon_0.
 title <- ggdraw() + draw_label("Spike-in TPM against real concentration\nSalmon 0.025", fontface='bold')
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+# Outlier day 0
+salmon_0.025_spike_day_0[order(salmon_0.025_spike_day_0$`0.025_salmon_day0-rep1`, decreasing=T), ][1, ]
+salmon_0.025_spike_day_0[order(salmon_0.025_spike_day_0$`0.025_salmon_day0-rep2`, decreasing=T), ][1:2, ]
+salmon_0.025_spike_day_0[order(salmon_0.025_spike_day_0$`0.025_salmon_day0-rep3`, decreasing=T), ][1, ]
+
+# Outlier day 5
+salmon_0.025_spike_day_5[order(salmon_0.025_spike_day_5$`0.025_salmon_day5-rep1`, decreasing=T), ][1, ]
+salmon_0.025_spike_day_5[order(salmon_0.025_spike_day_5$`0.025_salmon_day5-rep2`, decreasing=T), ][1, ]
+salmon_0.025_spike_day_5[order(salmon_0.025_spike_day_5$`0.025_salmon_day5-rep3`, decreasing=T), ][1, ]
 ```
+
+The correlations between the mass concentration and the TPM is linear. However, there is one clear outlier, one point with very high TPM and low concentration based on the day - `SIRV618` day 0 and `SIRV311` day 5. For day 0 rep 2 `SIRV311` is an additional outlier. 
 
 ```{r}
 bambu_0.025_spike_day_0 <- subset(bambu_0.025_spike, select = grepl("day0", names(bambu_0.025_spike)))
@@ -148,16 +161,16 @@ pacbio[, c("Day of the protocol", "amount added")]
 
 # For the day 0 replicate 3 - data is missing. I assume 2 was added.
 bambu_0.025_spike_day_0 <- bambu_0.025_spike_day_0 / 2
-bambu_0.025_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter
+bambu_0.025_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter * lexogen$mw_g_mol
 
 # For the day 5 replicates 2, 3 - 2. 
 bambu_0.025_spike_day_5[, 2:3] <- bambu_0.025_spike_day_5[, 2:3] / 2
-bambu_0.025_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter
+bambu_0.025_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter * lexogen$mw_g_mol
 
 # Day 0 
 day0.rep1 <- ggplot(data = bambu_0.025_spike_day_0, mapping = aes(x = bambu_0.025_spike_day_0$spike_in_conc, y = bambu_0.025_spike_day_0$`day0.rep1.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 1", x = "Concentration[fg/µL", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -165,7 +178,7 @@ day0.rep1 <- ggplot(data = bambu_0.025_spike_day_0, mapping = aes(x = bambu_0.02
 
 day0.rep2 <- ggplot(data = bambu_0.025_spike_day_0, mapping = aes(x = bambu_0.025_spike_day_0$spike_in_conc, y = bambu_0.025_spike_day_0$`day0.rep2.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -173,7 +186,7 @@ day0.rep2 <- ggplot(data = bambu_0.025_spike_day_0, mapping = aes(x = bambu_0.02
 
 day0.rep3 <- ggplot(data = bambu_0.025_spike_day_0, mapping = aes(x = bambu_0.025_spike_day_0$spike_in_conc, y = bambu_0.025_spike_day_0$`day0.rep3.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -182,7 +195,7 @@ day0.rep3 <- ggplot(data = bambu_0.025_spike_day_0, mapping = aes(x = bambu_0.02
 # Day 5
 day5.rep1 <- ggplot(data = bambu_0.025_spike_day_5, mapping = aes(x = bambu_0.025_spike_day_5$spike_in_conc, y = bambu_0.025_spike_day_5$`day5.rep1.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -190,7 +203,7 @@ day5.rep1 <- ggplot(data = bambu_0.025_spike_day_5, mapping = aes(x = bambu_0.02
 
 day5.rep2 <- ggplot(data = bambu_0.025_spike_day_5, mapping = aes(x = bambu_0.025_spike_day_5$spike_in_conc, y = bambu_0.025_spike_day_5$`day5.rep2.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -198,7 +211,7 @@ day5.rep2 <- ggplot(data = bambu_0.025_spike_day_5, mapping = aes(x = bambu_0.02
 
 day5.rep3 <- ggplot(data = bambu_0.025_spike_day_5, mapping = aes(x = bambu_0.025_spike_day_5$spike_in_conc, y = bambu_0.025_spike_day_5$`day5.rep3.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -208,6 +221,8 @@ title <- ggdraw() + draw_label("Spike-in TPM against real concentration\nbambu 0
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
+
+There is some correlation between the mass concentration and TPM between concentration and TPM. 
 
 #### Salmon against Bambu
 ```{r}
@@ -273,10 +288,13 @@ day5.rep3 <- ggplot(data = salmon_bambu, mapping = aes(x = salmon, y = bambu,)) 
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_smooth(method='lm', formula= y~x)
 
-title <- ggdraw() + draw_label("Spike-in TPM against real concentration\nSalmon 0.025", fontface='bold')
+title <- ggdraw() + draw_label("Spike-in TPM measure in different methods/nNDR 0.025 0.025", fontface='bold')
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
+
+The correlation between the TPM for Salmon and Bambu is very low.
+
 ### NDR 0.05
 #### Salmon/Bambu against real concentration
 
@@ -289,16 +307,16 @@ pacbio[, c("Day of the protocol", "amount added")]
 
 # For the day 0 replicate 3 - data is missing. I assume 2 was added.
 salmon_0.05_spike_day_0 <- salmon_0.05_spike_day_0 / 2
-salmon_0.05_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter
+salmon_0.05_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter * lexogen$mw_g_mol
 
 # For the day 5 replicates 2, 3 - 2. 
 salmon_0.05_spike_day_5[, 2:3] <- salmon_0.05_spike_day_5[, 2:3] / 2
-salmon_0.05_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter
+salmon_0.05_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter * lexogen$mw_g_mol
 
 # Day 0
 day0.rep1 <- ggplot(data = salmon_0.05_spike_day_0, mapping = aes(x = salmon_0.05_spike_day_0$spike_in_conc, y = salmon_0.05_spike_day_0$`0.05_salmon_day0-rep1`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -306,7 +324,7 @@ day0.rep1 <- ggplot(data = salmon_0.05_spike_day_0, mapping = aes(x = salmon_0.0
 
 day0.rep2 <- ggplot(data = salmon_0.05_spike_day_0, mapping = aes(x = salmon_0.05_spike_day_0$spike_in_conc, y = salmon_0.05_spike_day_0$`0.05_salmon_day0-rep2`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -314,7 +332,7 @@ day0.rep2 <- ggplot(data = salmon_0.05_spike_day_0, mapping = aes(x = salmon_0.0
 
 day0.rep3 <- ggplot(data = salmon_0.05_spike_day_0, mapping = aes(x = salmon_0.05_spike_day_0$spike_in_conc, y = salmon_0.05_spike_day_0$`0.05_salmon_day0-rep3`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -323,7 +341,7 @@ day0.rep3 <- ggplot(data = salmon_0.05_spike_day_0, mapping = aes(x = salmon_0.0
 # Day 5
 day5.rep1 <- ggplot(data = salmon_0.05_spike_day_5, mapping = aes(x = salmon_0.05_spike_day_5$spike_in_conc, y = salmon_0.05_spike_day_5$`0.05_salmon_day5-rep1`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -331,7 +349,7 @@ day5.rep1 <- ggplot(data = salmon_0.05_spike_day_5, mapping = aes(x = salmon_0.0
 
 day5.rep2 <- ggplot(data = salmon_0.05_spike_day_5, mapping = aes(x = salmon_0.05_spike_day_5$spike_in_conc, y = salmon_0.05_spike_day_5$`0.05_salmon_day5-rep2`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -339,7 +357,7 @@ day5.rep2 <- ggplot(data = salmon_0.05_spike_day_5, mapping = aes(x = salmon_0.0
 
 day5.rep3 <- ggplot(data = salmon_0.05_spike_day_5, mapping = aes(x = salmon_0.05_spike_day_5$spike_in_conc, y = salmon_0.05_spike_day_5$`0.05_salmon_day5-rep3`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -359,16 +377,16 @@ pacbio[, c("Day of the protocol", "amount added")]
 
 # For the day 0 replicate 3 - data is missing. I assume 2 was added.
 bambu_0.05_spike_day_0 <- bambu_0.05_spike_day_0 / 2
-bambu_0.05_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter
+bambu_0.05_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter * lexogen$mw_g_mol
 
 # For the day 5 replicates 2, 3 - 2. 
 bambu_0.05_spike_day_5[, 2:3] <- bambu_0.05_spike_day_5[, 2:3] / 2
-bambu_0.05_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter
+bambu_0.05_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter * lexogen$mw_g_mol
 
 # Day 0 
 day0.rep1 <- ggplot(data = bambu_0.05_spike_day_0, mapping = aes(x = bambu_0.05_spike_day_0$spike_in_conc, y = bambu_0.05_spike_day_0$`day0.rep1.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -376,7 +394,7 @@ day0.rep1 <- ggplot(data = bambu_0.05_spike_day_0, mapping = aes(x = bambu_0.05_
 
 day0.rep2 <- ggplot(data = bambu_0.05_spike_day_0, mapping = aes(x = bambu_0.05_spike_day_0$spike_in_conc, y = bambu_0.05_spike_day_0$`day0.rep2.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -384,7 +402,7 @@ day0.rep2 <- ggplot(data = bambu_0.05_spike_day_0, mapping = aes(x = bambu_0.05_
 
 day0.rep3 <- ggplot(data = bambu_0.05_spike_day_0, mapping = aes(x = bambu_0.05_spike_day_0$spike_in_conc, y = bambu_0.05_spike_day_0$`day0.rep3.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -393,7 +411,7 @@ day0.rep3 <- ggplot(data = bambu_0.05_spike_day_0, mapping = aes(x = bambu_0.05_
 # Day 5
 day5.rep1 <- ggplot(data = bambu_0.05_spike_day_5, mapping = aes(x = bambu_0.05_spike_day_5$spike_in_conc, y = bambu_0.05_spike_day_5$`day5.rep1.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -401,7 +419,7 @@ day5.rep1 <- ggplot(data = bambu_0.05_spike_day_5, mapping = aes(x = bambu_0.05_
 
 day5.rep2 <- ggplot(data = bambu_0.05_spike_day_5, mapping = aes(x = bambu_0.05_spike_day_5$spike_in_conc, y = bambu_0.05_spike_day_5$`day5.rep2.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -409,7 +427,7 @@ day5.rep2 <- ggplot(data = bambu_0.05_spike_day_5, mapping = aes(x = bambu_0.05_
 
 day5.rep3 <- ggplot(data = bambu_0.05_spike_day_5, mapping = aes(x = bambu_0.05_spike_day_5$spike_in_conc, y = bambu_0.05_spike_day_5$`day5.rep3.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -484,7 +502,7 @@ day5.rep3 <- ggplot(data = salmon_bambu, mapping = aes(x = salmon, y = bambu,)) 
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_smooth(method='lm', formula= y~x)
 
-title <- ggdraw() + draw_label("Spike-in TPM against real concentration\nSalmon 0.05", fontface='bold')
+title <- ggdraw() + draw_label("Spike-in TPM measure in different methods/nNDR 0.025 0.05", fontface='bold')
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
@@ -502,16 +520,16 @@ pacbio[, c("Day of the protocol", "amount added")]
 
 # For the day 0 replicate 3 - data is missing. I assume 2 was added.
 salmon_0.1_spike_day_0 <- salmon_0.1_spike_day_0 / 2
-salmon_0.1_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter
+salmon_0.1_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter * lexogen$mw_g_mol
 
 # For the day 5 replicates 2, 3 - 2. 
 salmon_0.1_spike_day_5[, 2:3] <- salmon_0.1_spike_day_5[, 2:3] / 2
-salmon_0.1_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter
+salmon_0.1_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter * lexogen$mw_g_mol
 
 # Day 0
 day0.rep1 <- ggplot(data = salmon_0.1_spike_day_0, mapping = aes(x = salmon_0.1_spike_day_0$spike_in_conc, y = salmon_0.1_spike_day_0$`0.1_salmon_day0-rep1`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -519,7 +537,7 @@ day0.rep1 <- ggplot(data = salmon_0.1_spike_day_0, mapping = aes(x = salmon_0.1_
 
 day0.rep2 <- ggplot(data = salmon_0.1_spike_day_0, mapping = aes(x = salmon_0.1_spike_day_0$spike_in_conc, y = salmon_0.1_spike_day_0$`0.1_salmon_day0-rep2`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -527,7 +545,7 @@ day0.rep2 <- ggplot(data = salmon_0.1_spike_day_0, mapping = aes(x = salmon_0.1_
 
 day0.rep3 <- ggplot(data = salmon_0.1_spike_day_0, mapping = aes(x = salmon_0.1_spike_day_0$spike_in_conc, y = salmon_0.1_spike_day_0$`0.1_salmon_day0-rep3`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -536,7 +554,7 @@ day0.rep3 <- ggplot(data = salmon_0.1_spike_day_0, mapping = aes(x = salmon_0.1_
 # Day 5
 day5.rep1 <- ggplot(data = salmon_0.1_spike_day_5, mapping = aes(x = salmon_0.1_spike_day_5$spike_in_conc, y = salmon_0.1_spike_day_5$`0.1_salmon_day5-rep1`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -544,7 +562,7 @@ day5.rep1 <- ggplot(data = salmon_0.1_spike_day_5, mapping = aes(x = salmon_0.1_
 
 day5.rep2 <- ggplot(data = salmon_0.1_spike_day_5, mapping = aes(x = salmon_0.1_spike_day_5$spike_in_conc, y = salmon_0.1_spike_day_5$`0.1_salmon_day5-rep2`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -552,7 +570,7 @@ day5.rep2 <- ggplot(data = salmon_0.1_spike_day_5, mapping = aes(x = salmon_0.1_
 
 day5.rep3 <- ggplot(data = salmon_0.1_spike_day_5, mapping = aes(x = salmon_0.1_spike_day_5$spike_in_conc, y = salmon_0.1_spike_day_5$`0.1_salmon_day5-rep3`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -572,16 +590,16 @@ pacbio[, c("Day of the protocol", "amount added")]
 
 # For the day 0 replicate 3 - data is missing. I assume 2 was added.
 bambu_0.1_spike_day_0 <- bambu_0.1_spike_day_0 / 2
-bambu_0.1_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter
+bambu_0.1_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter * lexogen$mw_g_mol
 
 # For the day 5 replicates 2, 3 - 2. 
 bambu_0.1_spike_day_5[, 2:3] <- bambu_0.1_spike_day_5[, 2:3] / 2
-bambu_0.1_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter
+bambu_0.1_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter * lexogen$mw_g_mol
 
 # Day 0 
 day0.rep1 <- ggplot(data = bambu_0.1_spike_day_0, mapping = aes(x = bambu_0.1_spike_day_0$spike_in_conc, y = bambu_0.1_spike_day_0$`day0.rep1.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -589,7 +607,7 @@ day0.rep1 <- ggplot(data = bambu_0.1_spike_day_0, mapping = aes(x = bambu_0.1_sp
 
 day0.rep2 <- ggplot(data = bambu_0.1_spike_day_0, mapping = aes(x = bambu_0.1_spike_day_0$spike_in_conc, y = bambu_0.1_spike_day_0$`day0.rep2.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -597,7 +615,7 @@ day0.rep2 <- ggplot(data = bambu_0.1_spike_day_0, mapping = aes(x = bambu_0.1_sp
 
 day0.rep3 <- ggplot(data = bambu_0.1_spike_day_0, mapping = aes(x = bambu_0.1_spike_day_0$spike_in_conc, y = bambu_0.1_spike_day_0$`day0.rep3.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -606,7 +624,7 @@ day0.rep3 <- ggplot(data = bambu_0.1_spike_day_0, mapping = aes(x = bambu_0.1_sp
 # Day 5
 day5.rep1 <- ggplot(data = bambu_0.1_spike_day_5, mapping = aes(x = bambu_0.1_spike_day_5$spike_in_conc, y = bambu_0.1_spike_day_5$`day5.rep1.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -614,7 +632,7 @@ day5.rep1 <- ggplot(data = bambu_0.1_spike_day_5, mapping = aes(x = bambu_0.1_sp
 
 day5.rep2 <- ggplot(data = bambu_0.1_spike_day_5, mapping = aes(x = bambu_0.1_spike_day_5$spike_in_conc, y = bambu_0.1_spike_day_5$`day5.rep2.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -622,7 +640,7 @@ day5.rep2 <- ggplot(data = bambu_0.1_spike_day_5, mapping = aes(x = bambu_0.1_sp
 
 day5.rep3 <- ggplot(data = bambu_0.1_spike_day_5, mapping = aes(x = bambu_0.1_spike_day_5$spike_in_conc, y = bambu_0.1_spike_day_5$`day5.rep3.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -697,7 +715,7 @@ day5.rep3 <- ggplot(data = salmon_bambu, mapping = aes(x = salmon, y = bambu,)) 
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_smooth(method='lm', formula= y~x)
 
-title <- ggdraw() + draw_label("Spike-in TPM against real concentration\nSalmon 0.1", fontface='bold')
+title <- ggdraw() + draw_label("Spike-in TPM measure in different methods/nNDR 0.025 0.1", fontface='bold')
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
@@ -714,16 +732,16 @@ pacbio[, c("Day of the protocol", "amount added")]
 
 # For the day 0 replicate 3 - data is missing. I assume 2 was added.
 salmon_0.2_spike_day_0 <- salmon_0.2_spike_day_0 / 2
-salmon_0.2_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter
+salmon_0.2_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter * lexogen$mw_g_mol
 
 # For the day 5 replicates 2, 3 - 2. 
 salmon_0.2_spike_day_5[, 2:3] <- salmon_0.2_spike_day_5[, 2:3] / 2
-salmon_0.2_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter
+salmon_0.2_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter * lexogen$mw_g_mol
 
 # Day 0
 day0.rep1 <- ggplot(data = salmon_0.2_spike_day_0, mapping = aes(x = salmon_0.2_spike_day_0$spike_in_conc, y = salmon_0.2_spike_day_0$`0.2_salmon_day0-rep1`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -731,7 +749,7 @@ day0.rep1 <- ggplot(data = salmon_0.2_spike_day_0, mapping = aes(x = salmon_0.2_
 
 day0.rep2 <- ggplot(data = salmon_0.2_spike_day_0, mapping = aes(x = salmon_0.2_spike_day_0$spike_in_conc, y = salmon_0.2_spike_day_0$`0.2_salmon_day0-rep2`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -739,7 +757,7 @@ day0.rep2 <- ggplot(data = salmon_0.2_spike_day_0, mapping = aes(x = salmon_0.2_
 
 day0.rep3 <- ggplot(data = salmon_0.2_spike_day_0, mapping = aes(x = salmon_0.2_spike_day_0$spike_in_conc, y = salmon_0.2_spike_day_0$`0.2_salmon_day0-rep3`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -748,7 +766,7 @@ day0.rep3 <- ggplot(data = salmon_0.2_spike_day_0, mapping = aes(x = salmon_0.2_
 # Day 5
 day5.rep1 <- ggplot(data = salmon_0.2_spike_day_5, mapping = aes(x = salmon_0.2_spike_day_5$spike_in_conc, y = salmon_0.2_spike_day_5$`0.2_salmon_day5-rep1`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -756,7 +774,7 @@ day5.rep1 <- ggplot(data = salmon_0.2_spike_day_5, mapping = aes(x = salmon_0.2_
 
 day5.rep2 <- ggplot(data = salmon_0.2_spike_day_5, mapping = aes(x = salmon_0.2_spike_day_5$spike_in_conc, y = salmon_0.2_spike_day_5$`0.2_salmon_day5-rep2`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -764,7 +782,7 @@ day5.rep2 <- ggplot(data = salmon_0.2_spike_day_5, mapping = aes(x = salmon_0.2_
 
 day5.rep3 <- ggplot(data = salmon_0.2_spike_day_5, mapping = aes(x = salmon_0.2_spike_day_5$spike_in_conc, y = salmon_0.2_spike_day_5$`0.2_salmon_day5-rep3`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -784,16 +802,16 @@ pacbio[, c("Day of the protocol", "amount added")]
 
 # For the day 0 replicate 3 - data is missing. I assume 2 was added.
 bambu_0.2_spike_day_0 <- bambu_0.2_spike_day_0 / 2
-bambu_0.2_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter
+bambu_0.2_spike_day_0$spike_in_conc <- lexogen$molarity_e1_fmoles_microliter * lexogen$mw_g_mol
 
 # For the day 5 replicates 2, 3 - 2. 
 bambu_0.2_spike_day_5[, 2:3] <- bambu_0.2_spike_day_5[, 2:3] / 2
-bambu_0.2_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter
+bambu_0.2_spike_day_5$spike_in_conc <- lexogen$molarity_e2_fmoles_microliter * lexogen$mw_g_mol
 
 # Day 0 
 day0.rep1 <- ggplot(data = bambu_0.2_spike_day_0, mapping = aes(x = bambu_0.2_spike_day_0$spike_in_conc, y = bambu_0.2_spike_day_0$`day0.rep1.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -801,7 +819,7 @@ day0.rep1 <- ggplot(data = bambu_0.2_spike_day_0, mapping = aes(x = bambu_0.2_sp
 
 day0.rep2 <- ggplot(data = bambu_0.2_spike_day_0, mapping = aes(x = bambu_0.2_spike_day_0$spike_in_conc, y = bambu_0.2_spike_day_0$`day0.rep2.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -809,7 +827,7 @@ day0.rep2 <- ggplot(data = bambu_0.2_spike_day_0, mapping = aes(x = bambu_0.2_sp
 
 day0.rep3 <- ggplot(data = bambu_0.2_spike_day_0, mapping = aes(x = bambu_0.2_spike_day_0$spike_in_conc, y = bambu_0.2_spike_day_0$`day0.rep3.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 0 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 0 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -818,7 +836,7 @@ day0.rep3 <- ggplot(data = bambu_0.2_spike_day_0, mapping = aes(x = bambu_0.2_sp
 # Day 5
 day5.rep1 <- ggplot(data = bambu_0.2_spike_day_5, mapping = aes(x = bambu_0.2_spike_day_5$spike_in_conc, y = bambu_0.2_spike_day_5$`day5.rep1.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 1", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 1", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -826,7 +844,7 @@ day5.rep1 <- ggplot(data = bambu_0.2_spike_day_5, mapping = aes(x = bambu_0.2_sp
 
 day5.rep2 <- ggplot(data = bambu_0.2_spike_day_5, mapping = aes(x = bambu_0.2_spike_day_5$spike_in_conc, y = bambu_0.2_spike_day_5$`day5.rep2.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 2", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 2", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -834,7 +852,7 @@ day5.rep2 <- ggplot(data = bambu_0.2_spike_day_5, mapping = aes(x = bambu_0.2_sp
 
 day5.rep3 <- ggplot(data = bambu_0.2_spike_day_5, mapping = aes(x = bambu_0.2_spike_day_5$spike_in_conc, y = bambu_0.2_spike_day_5$`day5.rep3.aligned.sorted`,)) +
   geom_point() +
-  labs(title = "Day 5 Rep 3", x = "Concentration [fmol/ul]", y = "TPM", color = "DE") +
+  labs(title = "Day 5 Rep 3", x = "Concentration [fg/µL]", y = "TPM", color = "DE") +
   scale_color_viridis_d() +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -909,7 +927,7 @@ day5.rep3 <- ggplot(data = salmon_bambu, mapping = aes(x = salmon, y = bambu,)) 
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_smooth(method='lm', formula= y~x)
 
-title <- ggdraw() + draw_label("Spike-in TPM against real concentration\nSalmon 0.2", fontface='bold')
+title <- ggdraw() + draw_label("Spike-in TPM measure in different methods/nNDR 0.025 0.2", fontface='bold')
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
