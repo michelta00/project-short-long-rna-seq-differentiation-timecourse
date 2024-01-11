@@ -66,7 +66,7 @@ First, the data was imported and preprocessed (see separate `import_processing.q
 
 #### Exploratory Analysis 
 
-The exploratory analysis was divided into a first direct comparison looking at the differences in the counts/TPM between Illumina+Salmon and PacBio+Bambu for all 4 NDR thresholds (0.025, 0.05, 0.1, 0.2) and visualizing them with histograms, followed by the computation of correlations between the different samples of Illumina+Salmon and PacBio+Bambu also stratified by transcript length and lastly looking at the MDS plots. The whole analysis was performed for count data as well as TPM data but it was decided to keep the tpm in the report file as it is more representative when performing the stratification by length (further explained in discussion). But the count plots as well as all other TPM plots not shown in the following can be found in the file `comparison_pacbio_illumina.qmd`. 
+The exploratory analysis was divided into a first direct comparison looking at the differences in the counts/TPM between Illumina+Salmon and PacBio+Bambu for all 4 NDR thresholds (0.025, 0.05, 0.1, 0.2) and visualizing them with histograms, followed by the computation of correlations between the different samples of Illumina+Salmon and PacBio+Bambu also stratified by transcript length and lastly looking at the MDS plots. The whole analysis was performed for count data as well as TPM data but it was decided to keep the TPM in the report file as it is more representative when performing the stratification by length (further explained in discussion). But the count plots as well as all other TPM plots not shown in the following can be found in the file `comparison_pacbio_illumina.qmd`. 
 
 #### Differences Illumina+Salmon vs. PacBio+Bambu 
 
@@ -78,7 +78,7 @@ Secondly, the correlation between Illumina+Salmon and PacBio+Bambu was looked at
 
 #### MDS plots 
 
-Lastly, the MDS plots were plotted for all 8 data frames (here we used the count data frames again) to compare the sample distribution between Illumina+Salmon and PacBio+Bambu. 
+Lastly, the MDS plots were plotted for all 8 data frames (here we used the count data frames) to compare the sample distribution between Illumina+Salmon and PacBio+Bambu. 
 
 
 
@@ -304,7 +304,7 @@ quant_9000_10000 <- quant[quant$Length >= 9000 & quant$Length < 10000, ]
 
 As seen in the above plot, most transcripts have a length between 0 and around 2000 and at around 10000 almost no transcripts can be found. So, we decided on dividing the lengths into intervals of 1000 from 0 to 10000. Here it is of note, that the intervals do not contain the same amount of transcripts so the bins have different frequencies. 
 
-So first, the correlation not stratified by length was plotted. We performed both pearson- and spearman-correlation but we will only show the spearman plot of the first NDR threshold for transcript and gene level.
+So first, the correlation not stratified by length was plotted. We performed both pearson- and spearman-correlation but we will only show the spearman plot of the first NDR threshold for transcript and gene level (explained in discussion).
 
 ```{r, echo = FALSE}
 #correlation not stratified by length
@@ -328,7 +328,7 @@ heat3 <- pheatmap(cor_0.025_gene_sp, cluster_rows = FALSE, cluster_cols = FALSE,
 
 In the spearman heat maps, there is a lower correlation on the gene level compared to the transcript level. Also the day 2 and day 3 bambu samples seem to be highly correlated also with the day 4 and day 5 salmon samples. 
 
-Then, the correlation stratified by length was plotted for all 4 NDR thresholds. For the purpose of no further information gain we will only show one pearson plot and then representatively one spearman heat map (for one bin) for each NDR threshold (we chose 1000-2000 as its the most abundant transcript length) as well as all 4 scatter plots of the summed up correlation stratified by length. 
+Then, the correlation stratified by length was plotted for all 4 NDR thresholds. For the purpose of no further information gain we will only show one pearson plot and then representatively one spearman heat map (for one bin) for each NDR threshold (we chose 1000-2000 as its the most abundant transcript length) as well as all 4 scatter plots of the summed up correlation stratified by length. The individual heatmaps are not shown in the report but can be commented out in the .qmd file for visualization and saving space. 
 
 ```{r message = FALSE, echo = FALSE}
 #0.025 
@@ -1585,10 +1585,9 @@ The comparison of the adjusted p-values for transcripts shows low correlation be
 
 ### Exploratory Comparison of Illumina+Salmon and PacBio+Bambu
 
-With the exploratory analysis of the data the goal was to get a first overview of both data sets as well as the differences in the raw data between Illumina+Salmon and PacBio+Bambu for all 4 different NDR thresholds and correlations between the two methods stratified by length. 
+With the exploratory analysis of the data the goal was to get a first overview of both data sets as well as the differences in the raw data between Illumina+Salmon and PacBio+Bambu for all 4 different NDR cutoffs and correlations between the two methods stratified by length. 
 
 Firstly, the results for all 4 thresholds are very similar which is why we decided to also keep in only the results for one/two different NDR thresholds for this part of the report as we gain no extra information when including all thresholds and this would take up too much space. The only small differences can be explained by the fact that the NDR thresholds determine the number of newly detected genes which doesn't have an effect on the comparison of both methods.
-
 Secondly, we performed the analysis on count and TPM data but decided to keep in only the result for TPM as we stratify by transcript length therefore making these results more interesting, also because the further analysis steps are also performed on TPM rather than the raw count data. For completeness the count results can be found in a separate file(`comparison_pacbio_illumina.qmd`).
 
 #### Differences 
@@ -1597,13 +1596,8 @@ We wanted to further look at the differences between the Illumina data, so short
 
 #### Correlation and stratification by length 
 
-Next, we looked at the correlation between Illumina and PacBio data. We performed both pearson and spearman correlation. When looking at the pearson results compared to spearman they look very unusual. One can't say that each sample is highest correlated with itself and some samples are highly correlated with all samples of all days (usually sample day 1 or 2) for both stratified and not stratified by length. Also, the scatter plot looks very unusual as for the different bins the summed up correlation is jumping up and down compared to heat maps and scatter plots of spearman which look as expected. This can be explained by the fact that spearman correlation is more robust to outliers than pearson and doesn't assume a linear relationship which works better with our data. So we decided to only focus on the plots produced by the spearman correlation. 
-
-Also, it is of note to mention that we decided to cut our data into intervals of transcript length 1000 which results in the bin 1000-2000 containing the most transcripts and making them an irregular size which then needs to be taken into account as 9000-10000 f.e. then contains a smaller amount of transcripts the correlation calculation then is based on. But this evens out as both bambu and salmon (which we compare) have those bin sizes and in the scatter plots we sum the correlations up. But for other bin sizes one could probably also see slightly different heat maps and scatter plots. Further, we did our analysis on the transcript and not on the gene level as we stratify it on the transcript length and this will be harder to do on the gene level and not as precise as one would need to use median transcript lengths. 
-
-So, looking at the heat maps not stratified by length they look the same for all the NDR thresholds but the correlations are smaller on the gene level which could maybe be explained by the fact the we sum up the transcripts for the genes thus resulting in fewer data and a smaller correlation. 
-
-The heat maps for the length stratification again look similar between the 4 NDR thresholds and show as expected highest correlation with their own sample between salmon and bambu as well as the replicates only with salmon-day3-rep1 standing out. This means that the individual samples between bambu and salmon do correlate well and are the most similar the their own sample in the other method and thus both methods seem to produce comparable results although the heat maps and correlation aren't as pronounced. This may be due to noise and outliers which even the spearman correlation isn't robust to. 
+Next, we looked at the correlation between Illumina and PacBio data. We performed both pearson and spearman correlation. When looking at the pearson results compared to spearman they look very unusual. One can't say that each sample is highest correlated with itself and some samples are highly correlated with all samples of all days (usually sample day 1 or 2) whilst the spearman heat maps look as expected. This can be explained by the fact that spearman correlation is more robust to outliers than pearson and doesn't assume a linear relationship which works better with our data. So we decided to only focus on the plots produced by the spearman correlation. 
+Also, it is of note to mention that we decided to cut our data into intervals of transcript length 1000 which results in the bin 1000-2000 containing the most transcripts and making them an irregular size. But this evens out as both bambu and salmon (which we compare) have those bin sizes and in the scatter plots we sum the correlations up. Further, we did our analysis on the transcript and not on the gene level as we stratify it on the transcript length and this will be harder to do on the gene level and not as precise as one would need to use median transcript lengths. So, looking at the heat maps not stratified by length they look the same for all the NDR thresholds but the correlations are smaller on the gene level which could maybe be explained by the fact the we sum up the transcripts for the genes thus resulting in fewer data and a smaller correlation.The heat maps for the length stratification again look similar between the 4 NDR thresholds and show as expected highest correlation with their own sample between salmon and bambu as well as the replicates. This means that the individual samples between bambu and salmon do correlate well and are the most similar the their own sample in the other method and thus both methods seem to produce comparable results although the heat maps and correlation aren't as pronounced. This may be due to noise and outliers which even the spearman correlation isn't robust to. 
 
 Lastly, looking at the scatter plot which again is almost the same for all 4 NDR thresholds we have a clear trend of a better summed up correlation towards longer lengths but a very low correlation for short transcript lengths (<=700 bp). This is due to the dropout in the PacBio data as it does not detect so short transcript lengths. The trend towards longer transcript lengths could be due to assignment of PacBio reads to transcripts getting more accurate with longer transcripts. This means that the PacBio and Illumina data are getting more correlated with longer transcripts and are less comparable with respect to shorter transcripts. 
 
