@@ -1605,7 +1605,7 @@ Lastly, looking at the scatter plot which again is almost the same for all 4 NDR
 
 The MDS plots look again the same for all 4 NDR thresholds and are comparable between Illumina and PacBio. MDS1 separates the samples in both methods by days and MDS2 by replicates. For Salmon the replicates are more spread out than for Bambu but the overall trend is the same with the differences being explained by the difference in method again showing that the raw (in this case count data) is comparable between the both methods. 
 
-All in all, this first part of our project gave an overview over the differences in the raw data between Illumina and PacBio and showed that the data has its differences but seems to be quite comparable especially when looking at the raw data differences as well as the correlation with there still being difficulties in shorter transcript lengths.
+
 
 
 
