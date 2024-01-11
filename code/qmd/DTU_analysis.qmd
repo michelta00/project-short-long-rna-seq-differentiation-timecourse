@@ -1,0 +1,509 @@
+---
+title: "DTU analysis"
+author: "Marie, Anna, Michel"
+date: today
+format: 
+    html:
+      toc: true
+      self-contained: true
+      highlight-style: github
+      code-line-numbers: true
+editor_options: 
+    chunk_output_type: inline
+---
+
+# Methods
+
+The differential transcript usage analysis was performed in RStudio (Posit team (2023), version 2023.6.2.561, R version 4.3.2 (2023-10-31)).
+
+# Differential Transcript Usage Analysis
+
+After detecting differentially expressed genes, differentially expressed isoforms were identified using Differential Transcript Usage (DTU) analysis pipeline using DRIMSeq and DEXSeq libraries. DTU complements DGE as it enables the identification of alternative splicing and isoform switches even if the gene expression does not change between conditions [1, 2]. As for DGE, the aim was to identify differentially expressed isoforms in samples generated over course of the 5 days and  to compare the results of the differential gene expression analysis of the Illumina+Salmon data (short read data) with the results of the PacBio+Bambu data (long read data). 
+
+The available workflows ([2, 5]) were tested on the given dataset ([here](./DTU_test_analysis.qmd)). The workflow made use of 3 libraries vignettes: DRIMSeq, DEXSeq and stageR. DEXSeq assumes that the feature (transcript) counts follow a negative binomial (NB) distribution and considers them as relative proportions of the group (the gene) using an interaction term in a generalized linear model (GLM) [2, 3]. DRIMSeq assumes that feature proportions follow the Dirichlet distribution (an Dirichlet Multinomial model (MD) for each gene) where the total count for the gene is considered fixed [2, 4]. The filtering was done with DRIMSeq package with both, the minimal number of samples where the genes should be expressed and the the minimal number of samples where the features should be expressed, set to 3 (the number of replicates on day 0 and 5). Additional filters were also added: it was required for a transcript to (1) have count of at least 10 in at least 3 samples, (2) have a relative abundance proportion of at least 0.1 in at least 3 samples, and (3) have the total count of 10 in the corresponding gene in all 3 samples. The filtered DRIMSeq object was used for DEXSeq workflow, as the filtering was easier, and the analysis was sped up. The design formula was taken as `~sample + exon + day:exon` (same as for DGE analysis). DEXSeq analysis included estimation of size factors, estimation of dispersion, and likelihood ratio tests for differential exon usage. The results tables (log2 fold changes and p-values) were generated and per-gene adjusted p-value were computed. stageR package was used for post-processing of the calculated p-values through stage-wise analysis of data, by screening first at the gene level for evidence of DTU (screening stage) and confirms which trancsripts within those significant genes show evidence of DTU (confirmation stage). `stageR` analysis was performed with *overall false discovery rate* (OFDR, alpha parameter) equal to 0.05. A custom function `plotExpression` was made to plot the transcript expression of a significant gene [5]. UpsetR plot and Venn diagrams were used to visualize the overlap between the transcripts identified by the two methods. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(42)
+```
+
+## Load packages
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggvenn)
+library(DRIMSeq)
+library(DEXSeq)
+library(stageR)
+library(stringr)
+library(ggplot2)
+library(ggbeeswarm)
+library(UpSetR)
+library(viridis)
+```
+
+## Load data
+
+The data is loaded from RDS-objects that have been created with the import_processing.qmd file. For each of the 4 NDR cutoffs (0.025, 0.05, 0.1, 0.2), two data frames exist containing the expression data (counts) of the two different technologies used to obtain the data:
+
+    1. Illumina sequencing and Salmon quantification (short read)
+    2. PacBio sequencing and Bambu quantification (long read)
+
+In total, this adds up to 8 different data frames. Each of these data frames contains 11 samples, which are replicates from one of five different time points. Each time point has 1-3 replicates.
+
+```{r}
+df_list_bambu <- readRDS("./bambu.rds")
+df_list_salmon <- readRDS("./salmon.rds")
+df_list_meta <- readRDS("./meta.rds")
+
+## Salmon
+salmon_0.025 <- df_list_salmon$salmon_0.025
+salmon_0.05 <- df_list_salmon$salmon_0.05
+salmon_0.1 <- df_list_salmon$salmon_0.1
+salmon_0.2 <- df_list_salmon$salmon_0.2
+## Bambu
+bambu_0.025 <- df_list_bambu$bambu_0.025
+bambu_0.05 <- df_list_bambu$bambu_0.05
+bambu_0.1 <- df_list_bambu$bambu_0.1
+bambu_0.2 <- df_list_bambu$bambu_0.2
+```
+
+# Creating a custom function to plot the results from DEXSeq
+
+Adapted from [5].
+
+```{r}
+plotExpression <- function(expData = NULL, geneID = NULL, samps = NULL, isProportion = FALSE) {
+        colnames(expData)[1:2] = c("gid","tid")
+        sub = subset(expData, gid == geneID)
+        sub = reshape2::melt(sub, id = c("gid", "tid"))
+        sub = merge(samps, sub, by.x = "sample_id", by.y = "variable")
+        if(!isProportion) {
+                sub$value = log(sub$value)
+        }
+
+        clrs = c("dodgerblue3", "maroon2",  "forestgreen", "darkorange1", "blueviolet", "firebrick2",
+"deepskyblue", "orchid2", "chartreuse3", "gold", "slateblue1", "tomato" , "blue", "magenta", "green3",
+"yellow", "purple3", "red" ,"darkslategray1", "lightpink1", "lightgreen", "khaki1", "plum3", "salmon")
+
+        p = ggplot(sub, aes(tid, value, color = day, fill = day)) +
+        geom_boxplot(alpha = 0.4, outlier.shape = NA, width = 0.8, lwd = 0.5) +
+        stat_summary(fun = mean, geom = "point", color = "black", shape = 5, size = 3, position=position_dodge(width = 0.8)) +
+        scale_color_manual(values = clrs) + scale_fill_manual(values = clrs) +
+        geom_quasirandom(color = "black", size = 1, dodge.width = 0.8) + theme_bw() +
+        ggtitle(geneID) + xlab("Transcripts")
+
+        if(!isProportion) {
+                p = p + ylab("log(Expression)")
+        } else {
+                p = p + ylab("Proportions")
+        }
+        p
+}
+```
+
+# Making a function for the pipeline using DEXSeq x DRIMSeq
+
+```{r warning = FALSE, message = FALSE}
+# `samps` dataframe relates the sample identifiers to the conditions (in this case, day of the experiment)
+samps <- df_list_meta$metadata
+samps <- samps %>% column_to_rownames(var="sampleID")
+colnames(samps) <- c("sample_id", "day")
+samps$day <- factor(samps$day)
+
+DTU <- function(data, txdf, sample_name, n = 11, n.small = 11){
+  # Counts
+  cts <- data
+  colnames(cts) <- samps$sample_id
+  # `counts` with the gene ID, the feature (transcript) ID, and then columns for each of the samples is built for dmDSdata object
+  counts <- data.frame(gene_id=txdf$gene_id,
+                     feature_id=rownames(txdf),
+                     cts)
+  # Creating dmDSdata object
+  d <- dmDSdata(counts=counts, samples=samps)
+   # Filtering
+  d <- dmFilter(d,
+                min_samps_feature_expr=n.small, min_feature_expr=10,
+                min_samps_feature_prop=n.small, min_feature_prop=0.1,
+                min_samps_gene_expr=n, min_gene_expr=10)
+  # Visualization of filtered dataframe
+  print(plotData(d))
+  png(paste0(sample_name, "plotData.DEXSeq-stageR.png"), width=6, height=6, units = "in", res = 300)
+  print(plotData(d))
+  dev.off()
+  # The count of isoforms of the filtered genes
+  # print(table(table(counts(d)$gene_id)))
+  # DEXSeq pipeline
+  sample.data <- DRIMSeq::samples(d)
+  count.data <- round(as.matrix(counts(d)[,-c(1:2)]))
+  dxd <- DEXSeqDataSet(countData=count.data,
+                       sampleData=sample.data,
+                       design=~sample + exon + day:exon,
+                       featureID=counts(d)$feature_id,
+                       groupID=counts(d)$gene_id)
+  dxd <- estimateSizeFactors(dxd)
+  dxd <- estimateDispersions(dxd, quiet=TRUE)
+  dxd <- testForDEU(dxd, reducedModel=~sample + exon)
+  dxr <- DEXSeqResults(dxd, independentFiltering=FALSE)
+  qval <- perGeneQValue(dxr)
+  # Per gene
+  dxr.g <- data.frame(gene=names(qval),qval)
+  # Per transcript
+  dxr.t = as.data.frame(dxr[, c("featureID","groupID","pvalue")])
+  # Number of identified genes showing evidence for DTU
+  print(paste0("Number of identified genes showing evidence for DTU through DEXSeq: ", nrow(dxr.g[dxr.g$qval < 0.05,])))
+  # Number of transcripts involved
+  print(paste0("Number of transcripts involved through DEXSeq: ", nrow(dxr[dxr$padj < 0.05,])))
+
+  # stageR
+  strp <- function(x) substr(x,1,15)
+  # Vector of per-gene p-values for the screening stage
+  pScreen <- qval
+  names(pScreen) <- strp(names(pScreen))
+  # One column matrix of the confirmation p-values for confirmation stage
+  pConfirmation <- matrix(dxr$pvalue,ncol=1)
+  dimnames(pConfirmation) <- list(strp(dxr$featureID),"transcript")
+  # two column dataframe `tx2gene`with the transcript and gene identifiers
+  tx2gene <-  data.frame(dxr.t[,c("featureID", "groupID")], dxr.t[,c("featureID", "groupID")])
+  # OFDRm, alpha parameter equal to 0.05
+  for (i in 1:2) tx2gene[,i] = strp(tx2gene[,i])
+  stageRObj <- stageRTx(pScreen=pScreen, pConfirmation=pConfirmation,
+                        pScreenAdjusted=TRUE, tx2gene=tx2gene[1:2])
+  stageRObj = stageRTx(pScreen = pScreen, 
+  pConfirmation = pConfirmation, 
+  pScreenAdjusted = TRUE, 
+  tx2gene = tx2gene[1:2])
+  
+  stageRObj <-  stageWiseAdjustment(stageRObj, method = "dtu", alpha = 0.05)
+  
+  suppressWarnings({
+    dex.padj <- getAdjustedPValues(stageRObj, order=FALSE,
+                                   onlySignificantGenes=TRUE)
+  })
+  
+  dex.padj = merge(tx2gene, dex.padj, by.x = c("groupID","featureID"), by.y = c("geneID","txID"))
+  # print(head(dex.padj[order(dex.padj$gene, decreasing = T), ]))
+  
+  # Normalize counts
+  dex.norm = cbind(as.data.frame(stringr::str_split_fixed(rownames(counts(dxd)), ":", 2)), as.data.frame(counts(dxd, normalized = TRUE))[,1:20])
+  colnames(dex.norm) = c("groupID", "featureID", as.character(colData(dxd)$sample_id)[1:20])
+  row.names(dex.norm) = NULL
+
+  # Per-group normalised mean
+  dex.mean = as.data.frame(sapply( levels(samps$day), 
+  function(lvl) rowMeans(dex.norm[, 3:ncol(dex.norm)][, samps$day == lvl, drop = FALSE]) ))
+  colnames(dex.mean) <- paste0("mean.day", colnames(dex.mean))
+  
+  # log2 fold change in expression
+  dex.log2fc = log2(dex.mean[2]/dex.mean[1])
+  colnames(dex.log2fc) = "log2fc"
+  rownames(dex.log2fc) = dex.norm$featureID
+  
+  # Merge to create result data
+  dexData = cbind(dex.norm[,1:2], dex.mean, dex.norm[, 3:ncol(dex.norm)])
+  colnames(dexData)[1:2] <-  c("GeneID","TranscriptID")
+  dexData = dexData[order(dexData$GeneID, dexData$TranscriptID),]
+  
+  # Merge to create result data
+  dexDTU = merge(dex.padj[,c("featureID.1","groupID.1","gene","transcript")], dex.log2fc, by.x = "featureID.1", by.y = "row.names")
+  colnames(dexDTU)[1:2] <-  c("TranscriptID","GeneID")
+  dexDTU = dexDTU[order(dexDTU$GeneID, dexDTU$TranscriptID),]
+  
+  # Write results to files
+  write.table(dexData, file=paste0(sample_name, "DTU_DEXSeq-stageR_means_and_counts.txt"), sep = "\t", quote = F, row.names = F, col.names = T)
+  write.table(dexDTU, file=paste0(sample_name, "DTU_DEXSeq-stageR_results.txt"), sep = "\t", quote = F, row.names = F, col.names = T)
+
+  # Plot the normalised counts for one of the significant genes, where we can see evidence of switching
+  gene_id <-  unique(dex.padj[order(dex.padj$transcript, dex.padj$gene),]$groupID.1)[1]
+  print(paste0("Significant gene chosen for visualization: ", gene_id))
+  
+  print(plotExpression(dex.norm, gene_id, samps, isProportion = T))
+  png(paste0(sample_name, "plotExpression-stageR.png"), width=6, height=6, units = "in", res = 300)
+  print(plotExpression(dex.norm, gene_id, samps, isProportion = T))
+  dev.off()
+  
+  return(dexDTU)
+}
+```
+
+### NDR 0.025
+```{r}
+# Transcript to gene mappings
+txdf <- df_list_meta$metagenes_0.025
+res_salmon_0.025 <- DTU(salmon_0.025, txdf, "salmon_0.025.", n = 3, n.small = 3)
+res_bambu_0.025 <- DTU(bambu_0.025, txdf,  "bambu_0.025.", n = 3, n.small = 3)
+
+confirmed_salmon_0.025 <- res_salmon_0.025[res_salmon_0.025$transcript < 0.05, ]
+nrow(confirmed_salmon_0.025)
+confirmed_bambu_0.025 <- res_bambu_0.025[res_bambu_0.025$transcript < 0.05, ]
+nrow(confirmed_bambu_0.025)
+```
+
+For Illumina+Salmon, out of the 9901 tested genes and 27084 tested features, DEXSeq test identified 1457 genes showing evidence of isoform switching involving 2409 transcripts. For PacBio+Bambu out of the 7088 tested genes and 17734 tested features, 3166 genes involving 6967 trancsripts were identified.
+
+After the stageR procedure, 2358 transcripts passed the confirmation stage for Illumina+Salmon and 6316 transcripts for PacBio+Bambu on a target 5% overall false discovery rate (OFDR). This means that, in expectation, no more than 5% of the genes that pass screening will either (1) not contain any DTU, so be falsely screened genes, or (2) contain a falsely confirmed transcript. 
+
+### Upset Plot
+
+```{r}
+# Screened Genes
+length(intersect(confirmed_salmon_0.025$GeneID, confirmed_bambu_0.025$GeneID))
+venn <- list(SALMON = confirmed_salmon_0.025$GeneID, BAMBU = confirmed_bambu_0.025$GeneID)
+ggvenn(venn)
+upset(fromList(venn))
+
+# Confirmed Transcripts
+length(intersect(confirmed_salmon_0.025$TranscriptID, confirmed_bambu_0.025$TranscriptID))
+venn <- list(SALMON = confirmed_salmon_0.025$TranscriptID, BAMBU = confirmed_bambu_0.025$TranscriptID)
+ggvenn(venn)
+upset(fromList(venn))
+```
+
+From the UpSet plot and Venn Diagram above it is visible that through PacBio+Bambu many more transcripts were detected through DTU. The overlap between Illumina+Salmon was also only roughly 11 \%.
+
+### Comparsion of pAdj and logFC 
+```{r}
+both_detected <-
+  intersect(res_bambu_0.025$TranscriptID, res_salmon_0.025$TranscriptID)
+sorted_res_salmon_0.025 <- res_salmon_0.025[order(res_salmon_0.025$TranscriptID),]
+both_sorted_res_salmon_0.025 <- sorted_res_salmon_0.025[which(sorted_res_salmon_0.025$TranscriptID %in% both_detected), ]
+sorted_res_bambu_0.025 <- res_bambu_0.025[order(res_bambu_0.025$TranscriptID),]
+both_sorted_res_bambu_0.025 <- sorted_res_bambu_0.025[which(sorted_res_bambu_0.025$TranscriptID %in% both_detected), ]
+
+padj <- data.frame(Salmon = both_sorted_res_salmon_0.025$transcript, Bambu = both_sorted_res_bambu_0.025$transcript)
+ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.025)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+logfc <- data.frame(Salmon = both_sorted_res_salmon_0.025$log2fc, Bambu = both_sorted_res_bambu_0.025$log2fc)
+ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.025)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+```
+
+The comparison of the adjusted p-values for transcripts shows low correlation between technologies especially for higher values. The logFC values seem to be, however, better correlated with some deviations for the extreme values.
+
+### NDR 0.05
+```{r}
+# Transcript to gene mappings
+txdf <- df_list_meta$metagenes_0.05
+res_salmon_0.05 <- DTU(salmon_0.05, txdf, "salmon_0.05.", n = 3, n.small = 3)
+res_bambu_0.05 <- DTU(bambu_0.05, txdf,  "bambu_0.05.", n = 3, n.small = 3)
+
+confirmed_salmon_0.05 <- res_salmon_0.05[res_salmon_0.05$transcript < 0.05, ]
+nrow(confirmed_salmon_0.05)
+confirmed_bambu_0.05 <- res_bambu_0.05[res_bambu_0.05$transcript < 0.05, ]
+nrow(confirmed_bambu_0.05)
+```
+
+For Illumina+Salmon, out of the 9958 tested genes and 27223 tested features, DEXSeq test identified 1468 genes showing evidence of isoform switching involving 2436 transcripts. For PacBio+Bambu out of the 7171 tested genes and 17949 tested features, 3217 genes involving 7087 trancsripts were identified.
+
+After the stageR procedure, 2375 transcripts passed the confirmation stage for Illumina+Salmon and 6427 transcripts for PacBio+Bambu on a target 5% overall false discovery rate (OFDR). This means that, in expectation, no more than 5% of the genes that pass screening will either (1) not contain any DTU, so be falsely screened genes, or (2) contain a falsely confirmed transcript. 
+
+### Upset Plot
+```{r}
+# Screened Genes
+length(intersect(confirmed_salmon_0.05$GeneID, confirmed_bambu_0.05$GeneID))
+venn <- list(SALMON = confirmed_salmon_0.05$GeneID, BAMBU = confirmed_bambu_0.05$GeneID)
+ggvenn(venn)
+upset(fromList(venn))
+
+# Confirmed Transcripts
+length(intersect(confirmed_salmon_0.05$TranscriptID, confirmed_bambu_0.05$TranscriptID))
+venn <- list(SALMON = confirmed_salmon_0.05$TranscriptID, BAMBU = confirmed_bambu_0.05$TranscriptID)
+ggvenn(venn)
+upset(fromList(venn))
+```
+
+From the UpSet plot and Venn Diagram above it is visible that through PacBio+Bambu many more transcripts were detected through DTU. The overlap between Illumina+Salmon was also only roughly 11 \%.
+
+### Comparsion of pAdj and logFC 
+```{r}
+both_detected <-
+  intersect(res_bambu_0.05$TranscriptID, res_salmon_0.05$TranscriptID)
+sorted_res_salmon_0.05 <- res_salmon_0.05[order(res_salmon_0.05$TranscriptID),]
+both_sorted_res_salmon_0.05 <- sorted_res_salmon_0.05[which(sorted_res_salmon_0.05$TranscriptID %in% both_detected), ]
+sorted_res_bambu_0.05 <- res_bambu_0.05[order(res_bambu_0.05$TranscriptID),]
+both_sorted_res_bambu_0.05 <- sorted_res_bambu_0.05[which(sorted_res_bambu_0.05$TranscriptID %in% both_detected), ]
+
+padj <- data.frame(Salmon = both_sorted_res_salmon_0.05$transcript, Bambu = both_sorted_res_bambu_0.05$transcript)
+ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.05)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+logfc <- data.frame(Salmon = both_sorted_res_salmon_0.05$log2fc, Bambu = both_sorted_res_bambu_0.05$log2fc)
+ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.05)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+```
+
+The comparison of the adjusted p-values for transcripts shows low correlation between technologies especially for higher values. The logFC values seem to be, however, better correlated with some deviations for the extreme values.
+
+### NDR 0.1
+```{r}
+# Transcript to gene mappings
+txdf <- df_list_meta$metagenes_0.1
+res_salmon_0.1 <- DTU(salmon_0.1, txdf, "salmon_0.1.", n = 3, n.small = 3)
+res_bambu_0.1 <- DTU(bambu_0.1, txdf,  "bambu_0.1.", n = 3, n.small = 3)
+
+confirmed_salmon_0.1 <- res_salmon_0.1[res_salmon_0.1$transcript < 0.05, ]
+nrow(confirmed_salmon_0.1)
+confirmed_bambu_0.1 <- res_bambu_0.1[res_bambu_0.1$transcript < 0.05, ]
+nrow(confirmed_bambu_0.1)
+```
+
+For Illumina+Salmon, out of the 10052 tested genes and 27506 tested features, DEXSeq test identified 1507 genes showing evidence of isoform switching involving 2505 transcripts. For PacBio+Bambu out of the 7366 tested genes and 18437 tested features, 3316 genes involving 7332 trancsripts were identified.
+
+After the stageR procedure, 2430 transcripts passed the confirmation stage for Illumina+Salmon and 6661 transcripts for PacBio+Bambu on a target 5% overall false discovery rate (OFDR). This means that, in expectation, no more than 5% of the genes that pass screening will either (1) not contain any DTU, so be falsely screened genes, or (2) contain a falsely confirmed transcript. 
+
+### Upset Plot
+```{r}
+# Screened Genes
+length(intersect(confirmed_salmon_0.1$GeneID, confirmed_bambu_0.1$GeneID))
+venn <- list(SALMON = confirmed_salmon_0.1$GeneID, BAMBU = confirmed_bambu_0.1$GeneID)
+ggvenn(venn)
+upset(fromList(venn))
+
+# Confirmed Transcripts
+length(intersect(confirmed_salmon_0.1$TranscriptID, confirmed_bambu_0.1$TranscriptID))
+venn <- list(SALMON = confirmed_salmon_0.1$TranscriptID, BAMBU = confirmed_bambu_0.1$TranscriptID)
+ggvenn(venn)
+upset(fromList(venn))
+```
+
+From the UpSet plot and Venn Diagram above it is visible that through PacBio+Bambu many more transcripts were detected through DTU. The overlap between Illumina+Salmon was also only roughly 11 \%.
+
+### Comparsion of pAdj and logFC 
+```{r}
+both_detected <-
+  intersect(res_bambu_0.1$TranscriptID, res_salmon_0.1$TranscriptID)
+sorted_res_salmon_0.1 <- res_salmon_0.1[order(res_salmon_0.1$TranscriptID),]
+both_sorted_res_salmon_0.1 <- sorted_res_salmon_0.1[which(sorted_res_salmon_0.1$TranscriptID %in% both_detected), ]
+sorted_res_bambu_0.1 <- res_bambu_0.1[order(res_bambu_0.1$TranscriptID),]
+both_sorted_res_bambu_0.1 <- sorted_res_bambu_0.1[which(sorted_res_bambu_0.1$TranscriptID %in% both_detected), ]
+
+padj <- data.frame(Salmon = both_sorted_res_salmon_0.1$transcript, Bambu = both_sorted_res_bambu_0.1$transcript)
+ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.1)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+logfc <- data.frame(Salmon = both_sorted_res_salmon_0.1$log2fc, Bambu = both_sorted_res_bambu_0.1$log2fc)
+ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.1)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+```
+
+The comparison of the adjusted p-values for transcripts shows low correlation between technologies especially for higher values. The logFC values seem to be, however, better correlated with some deviations for the extreme values.
+
+### NDR 0.2
+```{r}
+# Transcript to gene mappings
+txdf <- df_list_meta$metagenes_0.2
+res_salmon_0.2 <- DTU(salmon_0.2, txdf, "salmon_0.2.", n = 3, n.small = 3)
+res_bambu_0.2 <- DTU(bambu_0.2, txdf,  "bambu_0.2.", n = 3, n.small = 3)
+
+confirmed_salmon_0.2 <- res_salmon_0.2[res_salmon_0.2$transcript < 0.05, ]
+nrow(confirmed_salmon_0.2)
+confirmed_bambu_0.2 <- res_bambu_0.2[res_bambu_0.2$transcript < 0.05, ]
+nrow(confirmed_bambu_0.2)
+
+res_salmon_0.025[res_salmon_0.025$GeneID == "ENSG000000004864.16" ,]
+```
+
+After DRIMSeq filtering, 10364 (`r round(10364/62938*100, 2)` \%) of genes and  28447 (`r round(28447/249108*100, 2)`) \% of features remained in Illumina+Salmon data for further analysis. For Pacbio+Bambu 7847 (`r round(7847/62938*100, 2)` \%) genes and (`r round(19816/249108*100, 2)`) features passed the filter.
+
+For Illumina+Salmon, out of the 10364 tested genes and 28447 tested features, DEXSeq test identified 1578 (`r round(1578/10364*100, 2)` \%) genes showing evidence of isoform switching involving 2569 (`r round(2569/28447*100, 2)` \%) transcripts. For PacBio+Bambu out of the 7847 tested genes and 19816 tested features, 3530 genes (`r round(3530/7847*100, 2)` \%) involving 7799 (`r round(7799/19816*100, 2)` \%) trancsripts were identified.
+
+After the stageR procedure, 2528 transcripts (`r round(2528/28447*100, 2)` \% of the filtered) passed the confirmation stage for Illumina+Salmon and 7108 transcripts (`r round(7108/19816*100, 2)` \% of the filtered) for PacBio+Bambu on a target 5% overall false discovery rate (OFDR). This means that, in expectation, no more than 5% of the genes that pass screening will either (1) not contain any DTU, so be falsely screened genes, or (2) contain a falsely confirmed transcript. 
+
+The genes were ordered according to their adjusted p-values for transcript and genes after stageR procedure. The first significant gene was chosen for visualization. For Illumina+Salmon data we can see that the isoform ENST00000308731.8 from gene ENSG00000010671.17 starts getting transcribed by the end of the treatment starting from day 3 and increases signiicantly. Meanwhile, the transcription of the isoform ENST00000621635.4 stays approximately the same. For PacBio+Bambu we can see that the counts for isoform ENST00000265631.10 from gene ENSG00000004864.14 drop to 0 on day 5, meanwhile, they increase for isoform ENST00000416240.6.
+
+### Upset Plot
+```{r}
+# Screened Genes
+venn <- list(SALMON = confirmed_salmon_0.2$GeneID, BAMBU = confirmed_bambu_0.2$GeneID)
+ggvenn(venn)
+upset(fromList(venn))
+
+# Confirmed Transcripts
+venn <- list(SALMON = confirmed_salmon_0.2$TranscriptID, BAMBU = confirmed_bambu_0.2$TranscriptID)
+ggvenn(venn)
+upset(fromList(venn))
+```
+
+From the UpSet plot and Venn Diagram above it is visible that through PacBio+Bambu many more transcripts were detected through DTU. The overlap between Illumina+Salmon was also only roughly 7 \%. This percentage is less than for the thresholds for NDR 0.025, 0.05 and 0.1 which showed the overlap of roughly 11 \%.
+
+### Comparsion of pAdj and logFC 
+```{r}
+both_detected <-
+  intersect(res_bambu_0.2$TranscriptID, res_salmon_0.2$TranscriptID)
+sorted_res_salmon_0.2 <- res_salmon_0.2[order(res_salmon_0.2$TranscriptID),]
+both_sorted_res_salmon_0.2 <- sorted_res_salmon_0.2[which(sorted_res_salmon_0.2$TranscriptID %in% both_detected), ]
+sorted_res_bambu_0.2 <- res_bambu_0.2[order(res_bambu_0.2$TranscriptID),]
+both_sorted_res_bambu_0.2 <- sorted_res_bambu_0.2[which(sorted_res_bambu_0.2$TranscriptID %in% both_detected), ]
+
+padj <- data.frame(Salmon = both_sorted_res_salmon_0.2$transcript, Bambu = both_sorted_res_bambu_0.2$transcript)
+ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.2)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+logfc <- data.frame(Salmon = both_sorted_res_salmon_0.2$log2fc, Bambu = both_sorted_res_bambu_0.2$log2fc)
+ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.2)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+```
+
+The comparison of the adjusted p-values for transcripts shows low correlation between technologies especially for higher values. The logFC values seem to be, however, better correlated with some deviations for the extreme values.
+
+# Discussion
+
+The aim of the differential transcript usage analysis was to identify alternative splicing and isoform switches over the course of time, and to compare these results of the Illumina+Salmon data (short-read data) with the results of the PacBio+Bambu data (long-read data) for 4 different NDR thresholds.
+
+# References
+
+[1] Marques-Coelho, D., Iohan, L.d.C.C., Melo de Farias, A.R. et al. Differential transcript usage unravels gene expression alterations in Alzheimer’s disease human brains. npj Aging Mech Dis 7, 2 (2021). https://doi.org/10.1038/s41514-020-00052-5
+
+[2] https://www.bioconductor.org/packages/release/workflows/vignettes/rnaseqDTU/inst/doc/rnaseqDTU.html
+
+[3] Anders S, Reyes A, Huber W. Detecting differential usage of exons from RNA-seq data. Genome Res. 2012 Oct;22(10):2008-17. doi: 10.1101/gr.133744.111.
+
+[4] Nowicka M, Robinson MD. DRIMSeq: a Dirichlet-multinomial framework for multivariate count outcomes in genomics. F1000Res. 2016 Jun 13;5:1356. doi: 10.12688/f1000research.8900.2.
+
+[5] https://ycl6.gitbook.io/guide-to-rna-seq-analysis/differential-expression-analysis/differential-transcript-usage/dtu-using-dexseq 
+
+[6] Al’Khafaji, A.M., Smith, J.T., Garimella, K.V. et al. High-throughput RNA isoform sequencing using programmed cDNA concatenation. Nat Biotechnol (2023). https://doi.org/10.1038/s41587-023-01815-7
+
+When comparing the different NDR thresholds, only minor differences could be detected. Overall, the number of screened genes and confirmed transcripts increased with the threshold. This was expected as the number of detected genes also increased with increasing NDR threshold. The shorter reads from Illumina+Salmon data fail to span successive splice sites, which impairs the identification of isoform switching [6] so that only roughly 10 \% of the filtered features passed the stageR confirmation stage from Illumina+Salmon data. Meanwhile, longer reads from PacBio+Bambu span the majority of the human transcripts roughly 35 \% of the filtered features passed this stage for PacBio+Bambu [6]. Overall, the detected number of features were much higher for PacBio+Bambu and overlap between transcripts showing isoform switching was only roughly 10 \%. Both methods complement each other in DTU. 
