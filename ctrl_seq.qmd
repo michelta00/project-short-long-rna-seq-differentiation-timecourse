@@ -150,7 +150,7 @@ salmon_0.025_spike_day_5[order(salmon_0.025_spike_day_5$`0.025_salmon_day5-rep2`
 salmon_0.025_spike_day_5[order(salmon_0.025_spike_day_5$`0.025_salmon_day5-rep3`, decreasing=T), ][1, ]
 ```
 
-The correlations between the mass concentration and the TPM is linear. However, there is one clear outlier, one point with very high TPM and low concentration based on the day - `SIRV618` day 0 and `SIRV311` day 5. For day 0 rep 2 `SIRV311` is an additional outlier. 
+There is some low positive correlation between the mass concentration and the TPM. However, there is one clear outlier, one point with very high TPM and low concentration based on the day - `SIRV618` day 0 and `SIRV311` day 5. For day 0 rep 2 `SIRV311` is an additional outlier. 
 
 ```{r}
 bambu_0.025_spike_day_0 <- subset(bambu_0.025_spike, select = grepl("day0", names(bambu_0.025_spike)))
@@ -222,7 +222,7 @@ p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3,
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
 
-There is some correlation between the mass concentration and TPM between concentration and TPM. 
+There is low correlation between the mass concentration and TPM between concentration and TPM. 
 
 #### Salmon against Bambu
 ```{r}
@@ -293,7 +293,7 @@ p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3,
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
 
-The correlation between the TPM for Salmon and Bambu is very low.
+There is no apparent correlation between the TPM for Salmon and Bambu. The results are similar for all of the NDR thresholds. 
 
 ### NDR 0.05
 #### Salmon/Bambu against real concentration
@@ -581,6 +581,10 @@ p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3,
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
 
+The correlations between the mass concentration and the TPM is linear. However, there is one clear outlier, one point with very high TPM and low concentration based on the day - SIRV618 day 0 and SIRV311 day 5. For day 0 rep 2 SIRV311 is an additional outlier.
+
+
+
 ```{r}
 bambu_0.1_spike_day_0 <- subset(bambu_0.1_spike, select = grepl("day0", names(bambu_0.1_spike)))
 bambu_0.1_spike_day_5 <- subset(bambu_0.1_spike, select = grepl("day5", names(bambu_0.1_spike)))
@@ -650,6 +654,8 @@ title <- ggdraw() + draw_label("Spike-in TPM against real concentration\nbambu 0
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
+
+There is some correlation between the mass concentration and TPM between concentration and TPM.
 
 #### Salmon against Bambu
 ```{r}
@@ -723,6 +729,8 @@ plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ### NDR 0.2
 #### Salmon/Bambu against real concentration
 
+Here we assume that there is linear relationship between the mass concentration and the TPM. 
+
 ```{r}
 salmon_0.2_spike_day_0 <- subset(salmon_0.2_spike, select = grepl("day0", names(salmon_0.2_spike)))
 salmon_0.2_spike_day_5 <- subset(salmon_0.2_spike, select = grepl("day5", names(salmon_0.2_spike)))
@@ -791,7 +799,20 @@ day5.rep3 <- ggplot(data = salmon_0.2_spike_day_5, mapping = aes(x = salmon_0.2_
 title <- ggdraw() + draw_label("Spike-in TPM against real concentration\nSalmon 0.2", fontface='bold')
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+# Outlier day 0
+salmon_0.025_spike_day_0[order(salmon_0.025_spike_day_0$`0.025_salmon_day0-rep1`, decreasing=T), ][1, ]
+salmon_0.025_spike_day_0[order(salmon_0.025_spike_day_0$`0.025_salmon_day0-rep2`, decreasing=T), ][1:2, ]
+salmon_0.025_spike_day_0[order(salmon_0.025_spike_day_0$`0.025_salmon_day0-rep3`, decreasing=T), ][1, ]
+
+# Outlier day 5
+salmon_0.025_spike_day_5[order(salmon_0.025_spike_day_5$`0.025_salmon_day5-rep1`, decreasing=T), ][1, ]
+salmon_0.025_spike_day_5[order(salmon_0.025_spike_day_5$`0.025_salmon_day5-rep2`, decreasing=T), ][1, ]
+salmon_0.025_spike_day_5[order(salmon_0.025_spike_day_5$`0.025_salmon_day5-rep3`, decreasing=T), ][1, ]
 ```
+
+There is some low positive correlation between the mass concentration and the TPM. However, there is one clear outlier, one point with very high TPM and low concentration based on the day - SIRV618 day 0 and SIRV311 day 5. For day 0 rep 2 SIRV311 is an additional outlier.
+
 
 ```{r}
 bambu_0.2_spike_day_0 <- subset(bambu_0.2_spike, select = grepl("day0", names(bambu_0.2_spike)))
@@ -863,6 +884,8 @@ p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3,
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
 
+There is low correlation between the mass concentration and TPM between concentration and TPM.
+
 #### Salmon against Bambu
 ```{r}
 # Day 0
@@ -931,3 +954,9 @@ title <- ggdraw() + draw_label("Spike-in TPM measure in different methods/nNDR 0
 p <- plot_grid(day0.rep1, day0.rep2, day0.rep3, day5.rep1, day5.rep2, day5.rep3, ncol=3)
 plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
 ```
+
+There is no apparent correlation between the TPM for Salmon and Bambu. The results are similar for all of the NDR thresholds. 
+
+# Discussion
+
+We expected correlation between the concentrations of the spike-ins and the corresponding TPMs. For Illumina+Salmon data low positive correlation could be observed between the concentrations and the TPMs except for one or two evident outliers. The correlation was also low and positive for PacBio+Bambu data. There was no apparent correlation between the TPM for Salmon and Bambu. The results were similar for all of the NDR thresholds. The spike-ins represent the controls of the experiment and the lack of correlation in the data possibly reflects some errors in experimental procedures or data preprocessing. 
