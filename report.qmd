@@ -34,11 +34,7 @@ library(stringr)
 library(ggbeeswarm)
 ```
 
-To do
-- Literature
-- README /github page
-- link other files in report
-- conclusion
+
 
 
 ## Introduction
@@ -47,7 +43,7 @@ The read throughput of long-read RNA-sequencing methods, for example the Pacific
 
 A newly introduced method for long-read sequencing of transcript isoforms based on ISO-seq is multiplexed arrays isoform sequencing (MAS-ISO-seq), which was introduced by Al’Khafaji *et al* (2023). MAS-ISO-seq relies on the concatenation of cDNA fragments into longer sequence libraries with a narrow length distribution, the workflow is depicted in figure 1, and thereby exploits the full capability of the Ile Sequel platform compared to others protocols. In short, the cDNA fragments are distributed over multiple PCR’s, each of which appends specific barcode adapters containing deoxy-uracil (dU). Following, the amplified samples are pooled again and undergo dU digestion. Finally, the MAS-ISO-seq workflow creates concatenated cDNA fragments by barcode-directed adapter ligation of the original cDNA fragments. These concatenated fragments can then be used for PacBio sequencing (Al’Khafaji *et al*, 2023). 
 
-![**Figure 1: MAS-ISO-seq workflow.** MAS-ISO-seq relies on the concatenation of cDNA fragments into longer sequence libraries to fully use the capacities of the PacBio Sequel Ile platform. Figure from Al’Khafaji *et al* (2023).](figures/intro_figure.png){width=60%}
+![**Figure 1: MAS-ISO-seq workflow.** MAS-ISO-seq relies on the concatenation of cDNA fragments into longer sequence libraries to fully use the capacities of the PacBio Sequel Ile platform. Figure from Al’Khafaji *et al* (2023).](plots/intro_figure.png){width=60%}
 
 The performance of the MAS-ISO-seq protocol was tested by Al’Khafaji *et al* (2023) using different sample sets. In summary, the authors could show that RNA isoforms could be identified much more confidently with the MAS-ISO-seq protocol than with short-read methods when applied to both a SIRV sample set and a single cell sample set. Moreover, error robustness and >15-fold increase in throughput of the PacBio Sequel Ile platform could be shown (Al’Khafaji *et al*, 2023).
  
@@ -117,9 +113,9 @@ The Database for Annotation, Visualization and Integrated Discovery (DAVID) tool
 
 ### Differential Transcript Usage Analysis
 
-After detecting differentially expressed genes, differentially expressed isoforms were identified using Differential Transcript Usage (DTU) analysis pipeline using DRIMSeq and DEXSeq libraries. DTU complements DGE as it enables the identification of alternative splicing and isoform switches even if the gene expression does not change between conditions [1, 2]. As for DGE, the aim was to identify differentially expressed isoforms in samples generated over course of the 5 days and  to compare the results of the differential gene expression analysis of the Illumina+Salmon data (short read data) with the results of the PacBio+Bambu data (long read data). 
+After detecting differentially expressed genes, differentially expressed isoforms were identified using Differential Transcript Usage (DTU) analysis pipeline using DRIMSeq and DEXSeq libraries. DTU complements DGE as it enables the identification of alternative splicing and isoform switches even if the gene expression does not change between conditions (Marques-Coelho *et al*, 2021; Love *et al*, 2018). As for DGE, the aim was to identify differentially expressed isoforms in samples generated over course of the 5 days and  to compare the results of the differential gene expression analysis of the Illumina+Salmon data (short read data) with the results of the PacBio+Bambu data (long read data). 
 
-The available workflows ([2, 6]) were tested on the given dataset (**link file DTU_test.qmd**). The workflow made use of 3 libraries vignettes: DRIMSeq, DEXSeq and stageR. DEXSeq assumes that the feature (transcript) counts follow a negative binomial (NB) distribution and considers them as relative proportions of the group (the gene) using an interaction term in a generalized linear model (GLM) [2, 3]. DRIMSeq assumes that feature proportions follow the Dirichlet distribution (an Dirichlet Multinomial model (MD) for each gene) where the total count for the gene is considered fixed [2, 4]. The filtering was done with DRIMSeq package with both, the minimal number of samples where the genes should be expressed and the the minimal number of samples where the features should be expressed, set to 3 (the number of replicates on day 0 and 5). Additional filters were also added: it was required for a transcript to (1) have count of at least 10 in at least 3 samples, (2) have a relative abundance proportion of at least 0.1 in at least 3 samples, and (3) have the total count of 10 in the corresponding gene in all 3 samples. The filtered DRIMSeq object was used for DEXSeq workflow, as the filtering was easier, and the analysis was sped up. The design formula was taken as `~sample + exon + day:exon` (same as for DGE analysis). DEXSeq analysis included estimation of size factors, estimation of dispersion, and likelihood ratio tests for differential exon usage. The results tables (log2 fold changes and p-values) were generated and per-gene adjusted p-value were computed. stageR package was used for post-processing of the calculated p-values through stage-wise analysis of data, by screening first at the gene level for evidence of DTU (screening stage) and confirms which trancsripts within those significant genes show evidence of DTU (confirmation stage). `stageR` analysis was performed with *overall false discovery rate* (OFDR, alpha parameter) equal to 0.05. A custom function `plotExpression` was made to plot the transcript expression of a significant gene [5]. UpsetR plot and Venn diagrams were used to visualize the overlap between the transcripts identified by the two methods. 
+The available workflows (Love *et al*, 2018; Lin, 2021) were tested on the given dataset (**link file DTU_test.qmd**). The workflow made use of 3 libraries vignettes: DRIMSeq, DEXSeq and stageR. DEXSeq assumes that the feature (transcript) counts follow a negative binomial (NB) distribution and considers them as relative proportions of the group (the gene) using an interaction term in a generalized linear model (GLM) (Love *et al*, 2018; Anders *et al*, 2012). DRIMSeq assumes that feature proportions follow the Dirichlet distribution (an Dirichlet Multinomial model (MD) for each gene) where the total count for the gene is considered fixed (Love *et al*, 2018; Nowicka *et al*, 2016). The filtering was done with DRIMSeq package with both, the minimal number of samples where the genes should be expressed and the the minimal number of samples where the features should be expressed, set to 3 (the number of replicates on day 0 and 5). Additional filters were also added: it was required for a transcript to (1) have count of at least 10 in at least 3 samples, (2) have a relative abundance proportion of at least 0.1 in at least 3 samples, and (3) have the total count of 10 in the corresponding gene in all 3 samples. The filtered DRIMSeq object was used for DEXSeq workflow, as the filtering was easier, and the analysis was sped up. The design formula was taken as `~sample + exon + day:exon` (same as for DGE analysis). DEXSeq analysis included estimation of size factors, estimation of dispersion, and likelihood ratio tests for differential exon usage. The results tables (log2 fold changes and p-values) were generated and per-gene adjusted p-value were computed. stageR package was used for post-processing of the calculated p-values through stage-wise analysis of data, by screening first at the gene level for evidence of DTU (screening stage) and confirms which trancsripts within those significant genes show evidence of DTU (confirmation stage). `stageR` analysis was performed with *overall false discovery rate* (OFDR, alpha parameter) equal to 0.05. A custom function `plotExpression` was made to plot the transcript expression of a significant gene [Lin, 2021]. UpsetR plot and Venn diagrams were used to visualize the overlap between the transcripts identified by the two methods. 
 
 
 
@@ -1366,9 +1362,9 @@ bambu_0.1 <- df_list_bambu$bambu_0.1
 bambu_0.2 <- df_list_bambu$bambu_0.2
 ```
 
-##### Creating a custom function to plot the results from DEXSeq
+#### Making a function for the pipeline using DEXSeq x DRIMSeq
 
-From [5].
+Adapted from Lin (2021).
 
 ```{r echo=FALSE}
 plotExpression <- function(expData = NULL, geneID = NULL, samps = NULL, isProportion = FALSE) {
@@ -1399,8 +1395,6 @@ plotExpression <- function(expData = NULL, geneID = NULL, samps = NULL, isPropor
         p
 }
 ```
-
-#### Making a function for the pipeline using DEXSeq x DRIMSeq
 
 ```{r}
 # `samps` dataframe relates the sample identifiers to the conditions (in this case, day of the experiment)
@@ -1528,9 +1522,9 @@ confirmed_bambu_0.2 <- res_bambu_0.2[res_bambu_0.2$transcript < 0.05, ]
 nrow(confirmed_bambu_0.2)
 ```
 
-After DRIMSeq filtering, 10364 (`r round(10364/62938*100, 2)`%) of genes and  28447 (`r round(28447/249108*100, 2)`) \% of features remained in Illumina+Salmon data for further analysis. For Pacbio+Bambu 7847 (`r round(7847/62938*100, 2)`%) genes and (`r round(19816/249108*100, 2)`) features passed the filter.
+After DRIMSeq filtering, 10364 (`r round(10364/62938*100, 2)`%) of genes and  28447 (`r round(28447/249108*100, 2)`) \% of features remained in Illumina+Salmon data for further analysis. For PacBio+Bambu 7847 (`r round(7847/62938*100, 2)`%) genes and (`r round(19816/249108*100, 2)`) features passed the filter.
 
-For Illumina+Salmon, out of the 10364 tested genes and 28447 tested features, DEXSeq test identified 1578 (`r round(1578/10364*100, 2)`%) genes showing evidence of isoform switching involving 2569 (`r round(2569/28447*100, 2)`%) transcripts. For PacBio+Bambu out of the 7847 tested genes and 19816 tested features, 3530 genes (`r round(3530/7847*100, 2)`%) involving 7799 (`r round(7799/19816*100, 2)`%) trancsripts were identified.
+For Illumina+Salmon, out of the 10364 tested genes and 28447 tested features, DEXSeq test identified 1578 (`r round(1578/10364*100, 2)`%) genes showing evidence of isoform switching involving 2569 (`r round(2569/28447*100, 2)`%) transcripts. For PacBio+Bambu out of the 7847 tested genes and 19816 tested features, 3530 genes (`r round(3530/7847*100, 2)`%) involving 7799 (`r round(7799/19816*100, 2)`%) transcripts were identified.
 
 After the stageR procedure, 2528 transcripts (`r round(2528/28447*100, 2)`% of the filtered) passed the confirmation stage for Illumina+Salmon and 7108 transcripts (`r round(7108/19816*100, 2)`% of the filtered) for PacBio+Bambu on a target 5% overall false discovery rate (OFDR). This means that, in expectation, no more than 5% of the genes that pass screening will either (1) not contain any DTU, so be falsely screened genes, or (2) contain a falsely confirmed transcript. 
 
@@ -1638,19 +1632,54 @@ In general, the terms that were found to be significant by the gene set analysis
 
 The aim of the differential transcript usage analysis was to identify alternative splicing and isoform switches over the course of time, and to compare these results of the Illumina+Salmon data (short-read data) with the results of the PacBio+Bambu data (long-read data) for 4 different NDR thresholds.
 
-When comparing the different NDR thresholds, only minor differences could be detected. Overall, the number of screened genes and confirmed transcripts increased with the threshold. This was expected as the number of detected genes also increased with increasing NDR threshold. The shorter reads from Illumina+Salmon data fail to span successive splice sites, which impairs the identification of isoform switching [6] so that only roughly 10% of the filtered features passed the stageR confirmation stage from Illumina+Salmon data. Meanwhile, longer reads from PacBio+Bambu span the majority of the human transcripts roughly 35% of the filtered features passed this stage for PacBio+Bambu [6]. Overall, the detected number of features were much higher for PacBio+Bambu and overlap between transcripts showing isoform switching was only roughly 10%. Both methods complement each other in DTU. 
+When comparing the different NDR thresholds, only minor differences could be detected. Overall, the number of screened genes and confirmed transcripts increased with the threshold. This was expected as the number of detected genes also increased with increasing NDR threshold. The shorter reads from Illumina+Salmon data fail to span successive splice sites, which impairs the identification of isoform switching (Al’Khafaji *et al*, 2023) so that only roughly 10% of the filtered features passed the stageR confirmation stage from Illumina+Salmon data. Meanwhile, longer reads from PacBio+Bambu span the majority of the human transcripts roughly 35% of the filtered features passed this stage for PacBio+Bambu (Al’Khafaji *et al*, 2023). Overall, the detected number of features were much higher for PacBio+Bambu and overlap between transcripts showing isoform switching was only roughly 10%. Both methods complement each other in DTU. 
 
 
 
 
-## Outlook/Conclusion
+## Conclusion
+
+In conclusion, the exploratory data analysis gave us an overview over the differences in the raw data between Illumina and PacBio and showed that the data has its differences but seems to be quite comparable. This is the case especially when looking at the raw data differences as well as the correlation with there still being difficulties in shorter transcript lengths.
+Further, the Differential Gene Expression (DGE) analysis demonstrated a comparable identification of differentially expressed genes between Illumina+Salmon and PacBio+Bambu data, with some deviations and a recognition of the inherent limitations. The subsequent Gene Set Analysis revealed diverse functional enrichments in gene sets, influenced by the experimental conditions. Lastly, the Differential Transcript Usage (DTU) analysis highlighted that the number of features were much higher for PacBio+Bambu  than for Illumina+Salmon as  the longer read length spans the majority of human transcripts. All in all, a thorough comparison of the two methods could be performed whilst highlighting different aspects of both methods.
 
 
 
 
 ## Literature
 
+Al’Khafaji AM, Smith JT, Garimella KV, Babadi M, Popic V, Sade-Feldman M, Gatzen M, Sarkizova S, Schwartz MA, Blaum EM *et al* (2023) High-throughput RNA isoform sequencing using programmed cDNA concatenation. *Nat Biotechnol*
 
+Anders S, Reyes A, Huber W (2012) Detecting differential usage of exons from RNA-seq data. *Genome Res* 22: 2008-2017
+
+Baid G, Cook DE, Shafin K, Yun T, Llinares-López F, Berthet Q, Belyaeva A, Töpfer A, Wenger AM, Rowell WJ *et al* (2023) DeepConsensus improves the accuracy of sequences with a gap-aware sequence transformer. *Nat Biotechnol* 41: 232-238
+
+Baralle FE, Giudice J (2017) Alternative splicing as a regulator of development and tissue identity. *Nat Rev Mol Cell Biol* 18: 437-451
+
+Benjamini Y, Hochberg Y (1995) Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing. *J R Stat Soc B* 57: 289-300
+
+Chen Y, Sim A, Wan YK, Yeo K, Lee JJX, Ling MH, Love MI, Göke J (2023) Context-aware transcript quantification from long-read RNA-seq data with Bambu. *Nat Methods* 20: 1187-1195
+
+Conway JR, Lex A, Gehlenborg N (2017) UpSetR: an R package for the visualization of intersecting sets and their properties. *Bioinformatics* 33: 2938-2940
+
+Hardwick SA, Joglekar A, Flicek P, Frankish A, Tilgner HU (2019) Getting the Entire Message: Progress in Isoform Sequencing. *Front Genet* 10
+
+Lin H, 2021. Guide to RNA-seq Data Analysis. URL <https://ycl6.gitbook.io/guide-to-rna-seq-analysis/differential-expression-analysis/differential-transcript-usage/dtu-using-dexseq>.
+
+Love M, Soneson C, Patro R (2018) Swimming downstream: statistical analysis of differential transcript usage following Salmon quantification [version 3; peer review: 3 approved]. *F1000Res* 7
+
+Marques-Coelho D, Iohan LdCC, Melo de Farias AR, Flaig A, Letournel F, Martin-Négrier M-L, Chapon F, Faisant M, Godfraind C, Maurage C-A *et al* (2021) Differential transcript usage unravels gene expression alterations in Alzheimer’s disease human brains. *npj Aging Mech Dis* 7: 2
+
+Nowicka M, Robinson MD (2016) DRIMSeq: a Dirichlet-multinomial framework for multivariate count outcomes in genomics. *F1000Res* 5: 1356
+
+Patro R, Duggal G, Love MI, Irizarry RA, Kingsford C (2017) Salmon provides fast and bias-aware quantification of transcript expression. *Nat Methods* 14: 417-419
+
+Posit team (2023). RStudio: Integrated Development Environment for R. Posit Software, PBC, Boston, MA. URL <http://www.posit.co/>.
+
+Robinson MD, McCarthy DJ, Smyth GK (2009) edgeR: a Bioconductor package for differential expression analysis of digital gene expression data. *Bioinformatics* 26: 139-140
+
+Sherman BT, Hao M, Qiu J, Jiao X, Baseler MW, Lane HC, Imamichi T, Chang W (2022) DAVID: a web server for functional enrichment analysis and functional annotation of gene lists (2021 update). *Nucleic Acids Res* 50: W216-w221
+
+Wenger AM, Peluso P, Rowell WJ, Chang PC, Hall RJ, Concepcion GT, Ebler J, Fungtammasan A, Kolesnikov A, Olson ND et al (2019) Accurate circular consensus long-read sequencing improves variant detection and assembly of a human genome. *Nat Biotechnol* 37: 1155-1162
 
 
 ## Session Info and R Package Versions
