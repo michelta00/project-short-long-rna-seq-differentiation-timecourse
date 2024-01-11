@@ -116,7 +116,8 @@ meta_samples <- df_list_meta$metadata
 
 The differences between Illumina+Salmon and PacBio+Bambu have been computed in a direct comparison and it was calculated how many percent had a difference smaller than 50 (just to get an overview of the raw differences). 
 
-```{r}
+```{r, echo = FALSE}
+print("Differences transcript level (0.025, 0.05, 0.1, 0.2):")
 difference1 <- salmon_0.025 - bambu_0.025
 nrow(salmon_0.025[which(rowSums(abs(difference1)) < 50), ])/nrow(salmon_0.025)
 
@@ -129,6 +130,7 @@ nrow(salmon_0.1[which(rowSums(abs(difference3)) < 50), ])/nrow(salmon_0.1)
 difference4 <- salmon_0.2 - bambu_0.2
 nrow(salmon_0.2[which(rowSums(abs(difference4)) < 50), ])/nrow(salmon_0.2)
 
+print("Differences gene level (0.025, 0.05, 0.1, 0.2):")
 difference1_gene <- salmon_0.025_gene- bambu_0.025_gene
 nrow(salmon_0.025_gene[which(rowSums(abs(difference1_gene)) < 50), ])/nrow(salmon_0.025_gene)
 
@@ -149,7 +151,7 @@ On the transcript level the differences are under 50 for always around 92% of th
 
 This was then visualized for always the first column. Here we only show the plots for the 0.025 and 0.05 cutoffs on transcript and gene level because all 8 histograms  look almost the same. The rest can be seen in the comparison_pacbio_illumia.qmd file. 
 
-```{r, warning = FALSE}
+```{r, warning = FALSE, echo = FALSE}
 #only always performed on first column
 
 diff1 <- ggplot(difference1, aes(x = difference1[,1])) +
@@ -231,7 +233,7 @@ As seen in the above plot, most transcripts have a length between 0 and around 2
 
 So first, the correlation not stratified by length was plotted. We performed both pearson- and spearman-correlation but we will only show one pearson plot here and only the first two NDR cutoffs for demonstration purposes (this will be talked about in the discussion). 
 
-```{r}
+```{r, echo = FALSE}
 #correlation not stratified by length
 
 #pearson 
@@ -256,7 +258,7 @@ The heatmap for the pearson correlation looks unusual as not every sample is hig
 
 Then, the correlation stratified by length was plotted for all 4 NDR cutoffs. For the purpose of no further information gain we will only show one pearson plot again and then representitavely one spearman heatmap (for one bin) for each NDR cutoff ( we chose 1000-2000 as its the most abundant transcript length) as well as all 4 scatterplots of the summed up correlation stratified by length. 
 
-```{r message = FALSE}
+```{r message = FALSE, echo = FALSE}
 #0.025 
 bambu_0.025_below_1000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_below_1000$Name)
 salmon_0.025_below_1000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_below_1000$Name)
@@ -386,7 +388,7 @@ scatter1 <- ggplot(sums_df_sp, aes(x = Range, y = Sum)) +
 ```
 The pearson plots do not look like usual heatmap as the day 2 - rep 1 - bambu is highly correlated with all samples of salmon and the rest of the correlations seem quite low. Also the scatterplot is widely spread and one can see no clear trend of the summed up correlation as it is jumping up and down. When observing the 0.025 heatmap with spearman correlation one sees most of the samples being highly correlated with itself (or the replicates) and a bit clearer the highly correlated diagonal usually seen in heatmaps. 
 
-```{r}
+```{r, echo = FALSE}
 #0.05
 bambu_0.05_below_1000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_below_1000$Name)
 salmon_0.05_below_1000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_below_1000$Name)
@@ -471,7 +473,7 @@ scatter2 <- ggplot(sums_df_0.05, aes(x = Range, y = Sum)) +
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 #0.1
 bambu_0.1_below_1000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_below_1000$Name)
 salmon_0.1_below_1000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_below_1000$Name)
@@ -555,7 +557,7 @@ scatter3 <- ggplot(sums_df_0.1, aes(x = Range, y = Sum)) +
   stat_smooth(method="lm", col = "red", lty = 2)
 ```
 
-```{r}
+```{r, echo = FALSE}
 #0.2
 bambu_0.2_below_1000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_below_1000$Name)
 salmon_0.2_below_1000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_below_1000$Name)
@@ -647,7 +649,7 @@ The rest of the heatmaps for the other cutoffs (0.05, 0.1, 0.2) look very simila
 
 ### MDS
 
-```{r}
+```{r, echo = FALSE}
 group <- factor(df_list_meta$metadata$time)
 
 ## Salmon 0.025
