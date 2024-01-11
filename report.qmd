@@ -1,0 +1,1644 @@
+---
+title: "Comparison of Time-Course Short and Long Read RNA-seq data"
+author: "Anna Toidze, Marie-Claire Indilewitsch, Michel Tarnow"
+date: today
+format: 
+    html:
+      toc: true
+      self-contained: true
+      highlight-style: github
+      code-line-numbers: true
+editor_options: 
+    chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R packages
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(edgeR)
+library(UpSetR)
+library(viridis)
+library(pheatmap)
+library(patchwork)
+library(cowplot)
+library(gplots)
+library(readxl)
+```
+
+
+
+
+## Introduction
+
+The read throughput of long-read RNA-sequencing methods, for example the Pacific Biosciences (PacBio) platform, are a subject to improvement especially in connection to RNA isoform identification and quantification (Hardwick *et al*, 2019) . This is particularly of interest when looking at alternative splicing which is a regulatory process that  influences coding sequences, as well as translation efficiency, stability and other genetic processes by the differential splicing of exons during transcript maturation. Thereby it is a factor in the development of several diseases (Baralle *et al*, 2017). Correctly identifying alternative transcript isoforms is challenging as short-read technologies like Illumina have too short read lengths (50-600 bp, necessary would be > 5 kB) to correctly identify the splice sites even though they have a high throughput. Long-read technologies like PacBio or Oxford Nanopore enable sequencing with the necessary read lengths for RNA isoform identification and quantification, however, these platforms cannot attain the necessary read depths since they suffer from low read depths/throughput (smaller than the necessary 2 * 10^7) (Al’Khafaji *et al*, 2023). 
+
+To overcome these challenges, new technologies have been developed recently: for short-read sequencing Smart-seq3 has been introduced which is a sequencing approach that improves isoform detection by facilitating single-molecule reconstruction through the integration of reads with the same 5′ unique molecular identifier (UMI). The disadvantage of this technique is that it has a 5’ coverage bias which results in only partial reconstruction of most transcripts thereby not improving the isoform identification. Long-read technologies have been improved with respect to their raw base calling accuracies which were very error-prawn by using for example circularized consensus sequencing (Al’Khafaji *et al*, 2023). 
+ 
+When performing single molecule, real-time (SMRT) Cell 8M chemistry on the current PacBio Sequel Ile platform, the base quality of the sequencing only shows minimal improvement after around 10 circular passes (Baid et al, 2023; Wenger et al, 2019).  However, with transcript lengths of around 200-5000 bp, circularized consensus sequencing of circularized cDNA using the ISO-seq protocol can lead to a much higher number of circular passes and thus does not exploit the full capability of the Ile Sequel platform (Al’Khafaji et al, 2023). A newly introduced method for long-read sequencing of transcript isoforms based on ISO-seq is multiplexed arrays isoform sequencing (MAS-ISO-seq), which was introduced by Al’Khafaji *et al* (2023). MAS-ISO-seq relies on the concatenation of cDNA fragments into longer sequence libraries with a narrow length distribution, the workflow is depicted in figure 1. In short, the cDNA fragments are distributed over multiple PCR’s, each of which appends specific barcode adapters containing deoxy-uracil (dU). Following, the amplified samples are pooled again and undergo dU digestion. Finally, the MAS-ISO-seq workflow creates concatenated cDNA fragments by barcode-directed adapter ligation of the original cDNA fragments. These concatenated fragments can then be used for PacBio sequencing (Al’Khafaji *et al*, 2023). 
+
+![**Figure 1: MAS-ISO-seq workflow.** MAS-ISO-seq relies on the concatenation of cDNA fragments into longer sequence libraries to fully use the capacities of the PacBio Sequel Ile platform. Figure from Al’Khafaji *et al* (2023).](figures/intro_figure.png){width=60%}
+
+The performance of the MAS-ISO-seq protocol was tested by Al’Khafaji *et al* (2023) using different sample sets, including the Lexogen SIRV-Set 4 (mixture of synthetic RNA sequences of known sequence, spike-in RNA variants (SIRV)) and a single cell sample set of tumor-infiltrating CD8+ T cells. In summary, the authors could show that RNA isoforms could be identified much more confidently with the MAS-ISO-seq protocol than with short-read methods when applied to both the SIRV sample set and the single cell sample set. Moreover, error robustness and >15-fold increase in throughput of the PacBio Sequel Ile platform could be shown (Al’Khafaji *et al*, 2023).
+ 
+Here, we performed a similar analysis comparing two different count data sets, one derived from the MAS-ISO-seq protocol (long-read sequencing) and one derived from Illumina sequencing (short-read sequencing). The data sets contain samples from WTC-11 cells (induced pluripotent stem cells) that underwent a directed differentiation from pluripotent stem cells to hemogenic endothelial cells. More details can be found here: [directed-differentiation-hemogenic-endothelial-cells-from-human](https://app.jove.com/t/62391/directed-differentiation-hemogenic-endothelial-cells-from-human). For each day, including day 0, 1 – 3 samples were prepared. These samples were then sequenced using both the PacBio and Illumina platforms and were subsequently quantified with Bambu in the case of the PacBio sequence data and with Salmon in the case of Illumina sequence data. Bambu is an R package that performs transcript discovery and quantification for long-read RNAseq data (Chen *et al*, 2023), while Salmon does the same for short-read data (Patro *et al*, 2017). The quantification was performed using 4 different novel discovery rate (NDR) thresholds (NDR thresholds of 0.025, 0.05, 0.1 and 0.2 were applied here), which approximate the proportion of novel transcripts to control the balance between the sensitivity and the precision of the transcript discovery. The obtained data sets were finally compared in an exploratory data analysis (EDA), a differential gene expression (DGE) analysis and a differential transcript usage (DTU) analysis to explore the performance of the MAS-ISO-seq protocol compared to Illumina sequencing, which has been used and thus underwent optimization for much longer.
+
+
+
+
+## Methods
+
+### Exploratory Comparison of Illumina+Salmon and PacBio+Bambu
+
+The exploratory comparison of PacBio+Bambu vs. Illumina+Salmon data was performed in RStudio (R version 4.3.2 (2023-10-31)). 
+
+First, the data was imported and preprocessed (see separate `import_processing.qmd`). Hereby, the control sequences were filtered out and counts and transcripts-per-million (TPM) saved separately for Illumina+Salmon (short read) data and PacBio+Bambu (long read) data. Further, the 16 different data frames (8 for TPM, 8 for counts) were sorted to have the same order and saved in `.rds` files (bambu, salmon and metadata) which were then used for further analysis. Then a first direct exploratory analysis was performed to get an overview of the data. 
+
+#### Exploratory Analysis 
+
+The exploratory analysis was divided into a first direct comparison looking at the differences in the counts/TPM between Illumina+Salmon and PacBio+Bambu for all 4 NDR cutoffs (0.025, 0.05, 0.1, 0.2) and visualizing them with histograms, followed by the computation of correlations between the different samples of Illumina+Salmon and PacBio+Bambu also stratified by transcript length and lastly looking at the MDS plots. The whole analysis was performed for count data as well as TPM data but it was decided to keep the tpm in the report file as it is more representative when performing the stratification by length (further explained in discussion). But the count plots as well as all other TPM plots not shown in the following can be found in the file `comparison_pacbio_illumina.qmd`. 
+
+#### Differences Illumina+Salmon vs. PacBio+Bambu 
+
+First, the direct differences between the Illumina+Salmon and PacBio+Bambu data frames were calculated and visualized using histograms to see how different the raw data is. The histograms were only plotted for the first column of the data frame (sample 1) as plotting all columns would not lead to an increase in information. 
+
+#### Correlation Illumina+Salmon vs. PacBio+Bambu 
+
+Secondly, the correlation between Illumina+Salmon and PacBio+Bambu was looked at first not stratified by length and secondly, stratified by length on the transcript level (TPM) for all 4 NDR cutoffs. Hereby the samples were divided into 10 bins always portraying an interval of transcript length of 1000 (0-1000, 1000-2000 and so on). Thus, the bins do not have the same size. Both pearson and spearman correlation between all samples were performed and visualized in heat maps but in the results we decided on showing only the spearman plots (explained in the discussion). For all 10 bins the correlations were summed up and shown in a scatter plot to see the effect of transcript length for all 4 NDR cutoffs. 
+
+#### MDS plots 
+
+Lastly, the MDS plots were plotted for all 8 data frames (here we used the count data frames again) to compare the sample distribution between Illumina+Salmon and PacBio+Bambu. 
+
+
+
+
+### Spike-ins
+
+Spike-ins are synthetic RNA fragments of known sequence and concentration added to RNA-seq for calibration and control. The table `lexogen.tsv` contains the known concentrations [fmol/µL] and the the molar mass [g/mol] of the spike-ins used in the experiment. The table `PacBio_dev_team_revio_samples.xlsx` contains information about the quantity and the different mixes of the spike-ins used based on the experiment date and replicate. The mass concentration  [fg/µL] is linearly correlated to the length of the RNA fragment and is the product of these two quantities. It is plotted against the TPM measured from RNA sequencing for Illumina+Salmon and PacBio+Bambu data. Furthermore, the TPM from llumina+Salmon and PacBio+Bambu are plotted against each other.
+
+
+
+
+### Differential Gene Expression and Gene Set Analyses
+
+#### Differential Gene Expression Analysis
+
+The differential gene expression and gene set analyses were performed in RStudio (Posit team (2023), version 2023.6.2.561, R version 4.3.1).
+
+After an exploratory data analysis to compare the long- and short-read counts/TPMs, a differential gene expression analysis was conducted. Here the aim was twofold: first, the aim was to identify genes that are differentially expressed over the course of time, so over the course of the 5 days at which samples have been generated; second, the aim was to compare the results of the differential gene expression analysis of the Illumina+Salmon data (short-read data) with the results of the PacBio+Bambu data (long-read data). To do so, in total 8 different count data frames were analyzed. For each of the 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), there are two different count data frames, one derived from Illumina+Salmon and one derived from PacBio+Bambu. For the analysis of differentially expressed genes, a standard pipeline from the R package `edgeR` (Robinson *et al*, 2010, R package version 3.42.4) was used. 
+
+Before performing the differential expression analysis itself, some genes of interest were investigated. These genes are targeted by the directed differentiation treatment the cells underwent, and therefore might show changes in their expression over time. Here, the following genes were investigated:
+
+- WNT2 (Wnt family member 2)
+- CTNNB1 (catenin beta 1)
+- SMAD1 (SMAD family member 1)
+- ETV2 (ETS variant transcription factor 2)
+
+Afterwards, the differential gene expression analysis followed. First, `DGEList` objects were created from the 8 count data frames and subsequent filtered was performed using the `filterByExpr` function. The function removes genes that do not have a sufficient count in a worthwhile number of samples. Next, scaling factors for the library sizes were computed first using the function `calcNormFactors` to obtain normalized effective library sizes. Following, the function `estimateDisp` was applied on the `DGEList` objects to calculate posterior dispersion estimates. To do so, the following formula was used to create a design matrix: `~ day`. Day specifies the day at which each sample was created, so days 0 to 5. Thus, the design matrix was created in a way that the first time point, day 0, is the baseline (intercept of the model). The next step was to fit a negative binomial generalized log-linear model to each gene. This was done using the function `glmFit`. Finally, a likelihood ratio test was performed using the function `glmLRT`. Here, the full model is compared to a reduced model which has values of zero for all coefficients but the baseline, so for days 1 to 5. For each gene, this computes p-values and other test statistics of the likelihood ratio test that were used afterwards to identify genes that show statistical significant differential expression. To find these genes, the function `decideTests.DGELRT` adjusted the p-values by the Benjamini-Hochberg method (Benjamini and Hochberg, 1995) and then filtered differentially expressed genes by a significance threshold of 0.01.
+
+To compare the results for Illumina+Salmon with the results for PacBio+Bambu, an `UpSetR` (Gehlenborg, 2019, R package version 1.4.0) plot was created for each NDR threshold. This plot overlayed the genes called differentially expressed for the two different cases. Moreover, the p-values and logFC values (comparing day 0 and day 5) for each gene were compared using simple scatter plots.
+
+Lastly, the differential expression pipeline described above was also applied to all data sets to compare the time points day 0 and day 5 discretely. To do so, the in the likelihood ratio test only the coefficient of day 5 in the reduced model was set to 0. 
+
+#### Grouping of Differentially Expressed Genes
+
+After the differential gene expression analysis, the genes identified as differentially expressed were grouped into gene sets of similar genes. For this grouping, only the genes that were identified as differentially expressed by the analysis of both the Illumina+Salmon and the PacBio+Bambu data of the 0.2 NDR threshold were considered. Moreover, the genes were grouped depending on their Illumina+Salmon counts since these counts were treated as a ground truth to which the PacBio+Bambu counts were compared.
+
+Of these genes, the average expression at each time point was calculated first, so the average of the samples of each time point. Then, all gene-gene Spearman-correlations were computed and *1-correlation* was used as the difference between two genes during hierarchical clustering. The results of the hierarchical clustering were then evaluated to group the genes into clusters. From visual inspection of a cluster dendrogram and a correlation heat map, the number of clusters was set manually. Lastly, the average expression of the genes of the clusters at each time point was calculated for each cluster.
+
+The clusters were then used as gene sets for the following analysis of the functions or pathways that are associated with the genes identified as differentially expressed.
+
+#### Gene Set Analysis
+
+To make sense of the genes that were called differentially expressed, they were first grouped into gene sets of similar genes (see above). These gene sets were then used as input for a function and pathway analysis. Here, the frequency-based method DAVID (Sherman *et al*, 2022, <https://david.ncifcrf.gov/home.jsp>) was employed.
+
+The Database for Annotation, Visualization and Integrated Discovery (DAVID) tool is a web tool for functional annotation and enrichment analyses of gene sets, e.g. to find enriched gene ontology terms. To do so, the web tool requires the user to upload not only a list of genes, so the gene set of interest, but also another list of genes, the background. The tool then searches for functional annotations that are statistically overrepresented (enriched) in the gene set of interest compared to the background. Therefore, the choice of background can influence the results of the analysis. Here, the gene sets of interest were the clusters created during the grouping of the differentially expressed genes and as background all genes that remained after the filtering were used. The only exception to that are genes that were newly discovered during the transcript quantification since these genes do not have a valid ensemble gene ids which is a requirement of DAVID.
+
+
+
+
+## Results
+
+### Exploratory Comparison of Illumina+Salmon and PacBio+Bambu
+
+#### Load data
+
+The data is loaded from RDS-object files from bambu, salmon and the metadata (from import_processing.qmd). For each of the 4 NDR cutoffs (0.025, 0.05, 0.1, 0.2), two data frames exist containing the expression data (counts) as well as transcript-per-million (tpm) of the two different technologies used to obtain the data:
+
+    1. Illumina sequencing and Salmon quantification (short read)
+    2. PacBio sequencing and Bambu quantification (long read)
+
+In total, this adds up to 16 different data frames. Each of these data frames contains 11 samples, which are replicates from one of five different time points. Each time point has 1-3 replicates.
+
+```{r}
+df_list_bambu <- readRDS("../bambu.rds")
+df_list_salmon <- readRDS("../salmon.rds")
+df_list_meta <- readRDS("../meta.rds")
+```
+
+```{r}
+bambu_0.025 <- df_list_bambu$bambu_0.025_tpm
+bambu_0.05 <- df_list_bambu$bambu_0.05_tpm
+bambu_0.1 <- df_list_bambu$bambu_0.1_tpm
+bambu_0.2 <- df_list_bambu$bambu_0.2_tpm
+
+salmon_0.025 <- df_list_salmon$salmon_0.025_tpm
+salmon_0.05 <- df_list_salmon$salmon_0.05_tpm
+salmon_0.1 <- df_list_salmon$salmon_0.1_tpm
+salmon_0.2 <- df_list_salmon$salmon_0.2_tpm
+
+bambu_0.025_gene <- df_list_bambu$bambu_0.025_tpm_gene
+bambu_0.05_gene <- df_list_bambu$bambu_0.05_tpm_gene
+bambu_0.1_gene <- df_list_bambu$bambu_0.1_tpm_gene
+bambu_0.2_gene <- df_list_bambu$bambu_0.2_tpm_gene
+
+salmon_0.025_gene <- df_list_salmon$salmon_0.025_tpm_gene
+salmon_0.05_gene <- df_list_salmon$salmon_0.05_tpm_gene
+salmon_0.1_gene <- df_list_salmon$salmon_0.1_tpm_gene
+salmon_0.2_gene <- df_list_salmon$salmon_0.2_tpm_gene
+
+bambu_0.025_count <- df_list_bambu$bambu_0.025
+bambu_0.05_count <- df_list_bambu$bambu_0.05
+bambu_0.1_count <- df_list_bambu$bambu_0.1
+bambu_0.2_count <- df_list_bambu$bambu_0.2
+
+salmon_0.025_count <- df_list_salmon$salmon_0.025
+salmon_0.05_count <- df_list_salmon$salmon_0.05
+salmon_0.1_count <- df_list_salmon$salmon_0.1
+salmon_0.2_count <- df_list_salmon$salmon_0.2
+
+bambu_0.025_gene_count <- df_list_bambu$bambu_0.025_gene
+bambu_0.05_gene_count <- df_list_bambu$bambu_0.05_gene
+bambu_0.1_gene_count <- df_list_bambu$bambu_0.1_gene
+bambu_0.2_gene_count <- df_list_bambu$bambu_0.2_gene
+
+salmon_0.025_gene_count <- df_list_salmon$salmon_0.025_gene
+salmon_0.05_gene_count <- df_list_salmon$salmon_0.05_gene
+salmon_0.1_gene_count <- df_list_salmon$salmon_0.1_gene
+salmon_0.2_gene_count <- df_list_salmon$salmon_0.2_gene
+
+meta_samples <- df_list_meta$metadata
+```
+
+#### Differences 
+
+The differences between Illumina+Salmon and PacBio+Bambu have been computed in a direct comparison and it was calculated how many percent had a difference smaller than 50 (just to get an overview of the raw differences). 
+
+```{r, echo = FALSE}
+print("Differences transcript level (0.025, 0.05, 0.1, 0.2):")
+difference1 <- salmon_0.025 - bambu_0.025
+nrow(salmon_0.025[which(rowSums(abs(difference1)) < 50), ])/nrow(salmon_0.025)
+
+difference2 <- salmon_0.05- bambu_0.05
+nrow(salmon_0.05[which(rowSums(abs(difference2)) < 50), ])/nrow(salmon_0.05)
+
+difference3 <- salmon_0.1 - bambu_0.1
+nrow(salmon_0.1[which(rowSums(abs(difference3)) < 50), ])/nrow(salmon_0.1)
+
+difference4 <- salmon_0.2 - bambu_0.2
+nrow(salmon_0.2[which(rowSums(abs(difference4)) < 50), ])/nrow(salmon_0.2)
+
+print("Differences gene level (0.025, 0.05, 0.1, 0.2):")
+difference1_gene <- salmon_0.025_gene- bambu_0.025_gene
+nrow(salmon_0.025_gene[which(rowSums(abs(difference1_gene)) < 50), ])/nrow(salmon_0.025_gene)
+
+difference2_gene <- salmon_0.05_gene- bambu_0.05_gene
+nrow(salmon_0.05_gene[which(rowSums(abs(difference2_gene)) < 50), ])/nrow(salmon_0.05_gene)
+
+difference3_gene <- salmon_0.1_gene - bambu_0.1_gene
+nrow(salmon_0.1_gene[which(rowSums(abs(difference3_gene)) < 50), ])/nrow(salmon_0.1_gene)
+
+difference4_gene <- salmon_0.2_gene - bambu_0.2_gene
+nrow(salmon_0.2_gene[which(rowSums(abs(difference4_gene)) < 50), ])/nrow(salmon_0.2_gene)
+
+
+```
+On the transcript level the differences are under 50 for always around 92% of the transcripts for all the NDR cutoffs and for the gene level around 85% for all the NDR cutoffs. 
+
+#### Histograms of differences 
+
+This was then visualized for always the first column. Here we only show the plots for the 0.025 and 0.05 cutoffs on transcript and gene level because all 8 histograms  look almost the same. The rest can be seen in the `comparison_pacbio_illumia.qmd` file. 
+
+```{r, warning = FALSE, echo = FALSE}
+#only always performed on first column
+
+diff1 <- ggplot(difference1, aes(x = difference1[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
+  scale_color_viridis() +
+  labs(title = "Difference between bambu and salmon 0.025", x = "difference", y = "freq")
+
+diff2 <- ggplot(difference2, aes(x = difference2[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
+  scale_color_viridis() +
+  labs(title = "Difference between bambu and salmon 0.05", x = "difference", y = "freq")
+
+diff3 <- ggplot(difference1_gene, aes(x = difference1_gene[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
+  scale_color_viridis() +
+  labs(title = "Difference between bambu and salmon 0.025 gene level", x = "difference", y = "freq")
+
+
+diff4 <- ggplot(difference2_gene, aes(x = difference2_gene[,1])) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(-100,200)+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
+  scale_color_viridis() +
+  labs(title = "Difference between bambu and salmon 0.05 gene level", x = "difference", y = "freq")
+
+plot1 <- diff1 + diff2 + diff3 + diff4
+plot1
+
+```
+As one can see, the most differences are around 0 (highest bar) with small bars around it. Thus, when just looking at the raw data the difference between Illumina+Salmon and PacBio+Bambu is small. 
+
+#### Correlation and stratification by length 
+
+Next, the correlation between Illumina+Salmon and PacBio+Bambu was computed. For that, first the transcript lengths were exported as well as their distribution looked at to be able to divide them into sections for the stratification by transcript length. 
+
+```{r, warning = FALSE}
+#get length and filter by it 
+samples <- list.files("../stat_rproject/data/") 
+samples <- samples[grep(pattern = "0.025_salmon", x = samples)]
+
+
+file <- paste0("../stat_rproject/data/", samples[1], "/", "quant.sf")
+quant <- read.csv(file, sep = "\t", header = T)
+length <- quant$Length
+
+#distribution of lengths 
+ggplot(quant, aes(x = Length)) +
+  geom_histogram(binwidth = 100, fill = "blue", color = "black", alpha = 0.7)+
+  xlim(0,10000)+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Transcript length distribution", x = "transcript length", y = "freq")
+
+#dividing length into subsets based on plotted distribution 
+quant_below_1000 <- quant[quant$Length < 1000, ]
+quant_1000_2000 <- quant[quant$Length >= 1000 & quant$Length < 2000, ]
+quant_2000_3000 <- quant[quant$Length >= 2000 & quant$Length < 3000, ]
+quant_3000_4000 <- quant[quant$Length >= 3000 & quant$Length < 4000, ]
+quant_4000_5000 <- quant[quant$Length >= 4000 & quant$Length < 5000, ]
+quant_5000_6000 <- quant[quant$Length >= 5000 & quant$Length < 6000, ]
+quant_6000_7000 <- quant[quant$Length >= 6000 & quant$Length < 7000, ]
+quant_7000_8000 <- quant[quant$Length >= 7000 & quant$Length < 8000, ]
+quant_8000_9000 <- quant[quant$Length >= 8000 & quant$Length < 9000, ]
+quant_9000_10000 <- quant[quant$Length >= 9000 & quant$Length < 10000, ]
+```
+
+As seen in the above plot, most transcripts have a length between 0 and around 2000 and at around 10000 almost no transcripts can be found. So, we decided on dividing the lengths into intervals of 1000 from 0 to 10000. Here it is of note, that the intervals do not contain the same amount of transcripts so the bins have different frequencies. 
+
+So first, the correlation not stratified by length was plotted. We performed both pearson- and spearman-correlation but we will only show one pearson plot here and only the first two NDR cutoffs for demonstration purposes (this will be talked about in the discussion). 
+
+```{r, echo = FALSE}
+#correlation not stratified by length
+
+#pearson 
+cor_0.025 <- cor(bambu_0.025, salmon_0.025)
+pheatmap(cor_0.025, cluster_rows = FALSE, cluster_cols = FALSE, main="Correlation 0.025 pearson")
+
+# spearman 
+cor_0.025_sp <- cor(bambu_0.025, salmon_0.025, method = 'spearman')
+cor_0.05_sp <- cor(bambu_0.05, salmon_0.05, method = 'spearman')
+cor_0.025_gene_sp <- cor(bambu_0.025_gene, salmon_0.025_gene, method = 'spearman')
+cor_0.05_gene_sp <- cor(bambu_0.05_gene, salmon_0.05_gene, method = 'spearman')
+
+
+heat1 <- pheatmap(cor_0.025_sp, cluster_rows = FALSE, cluster_cols = FALSE, main = "Correlation 0.025")
+heat2 <- pheatmap(cor_0.05_sp, cluster_rows = FALSE, cluster_cols = FALSE, main = "Correlation 0.05")
+heat3 <- pheatmap(cor_0.025_gene_sp, cluster_rows = FALSE, cluster_cols = FALSE, main = "Correlation 0.025 gene level")
+heat4 <- pheatmap(cor_0.05_gene_sp, cluster_rows = FALSE, cluster_cols = FALSE, main = "Correlation 0.05 gene level")
+
+```
+
+The heat map for the pearson correlation looks unusual as not every sample is highest correlated with itself and the spearman heat maps look similar between the cutoffs but there is lower correlation on the gene level compared to the transcript level. Also the day 2 and day 3 bambu samples seem to be highly correlated also with the day 4 and day 5 salmon samples. 
+
+Then, the correlation stratified by length was plotted for all 4 NDR cutoffs. For the purpose of no further information gain we will only show one pearson plot again and then representatively one spearman heat map (for one bin) for each NDR cutoff ( we chose 1000-2000 as its the most abundant transcript length) as well as all 4 scatter plots of the summed up correlation stratified by length. 
+
+```{r message = FALSE, echo = FALSE}
+#0.025 
+bambu_0.025_below_1000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_below_1000$Name)
+salmon_0.025_below_1000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_below_1000$Name)
+
+bambu_0.025_1000_2000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_1000_2000$Name)
+salmon_0.025_1000_2000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_1000_2000$Name)
+
+bambu_0.025_2000_3000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_2000_3000$Name)
+salmon_0.025_2000_3000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_2000_3000$Name)
+
+bambu_0.025_3000_4000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_3000_4000$Name)
+salmon_0.025_3000_4000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_3000_4000$Name)
+
+bambu_0.025_4000_5000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_4000_5000$Name)
+salmon_0.025_4000_5000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_4000_5000$Name)
+
+bambu_0.025_5000_6000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_5000_6000$Name)
+salmon_0.025_5000_6000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_5000_6000$Name)
+
+bambu_0.025_6000_7000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_6000_7000$Name)
+salmon_0.025_6000_7000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_6000_7000$Name)
+
+bambu_0.025_7000_8000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_7000_8000$Name)
+salmon_0.025_7000_8000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_7000_8000$Name)
+
+bambu_0.025_8000_9000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_8000_9000$Name)
+salmon_0.025_8000_9000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_8000_9000$Name)
+
+bambu_0.025_9000_10000 <- subset(bambu_0.025, rownames(bambu_0.025) %in% quant_9000_10000$Name)
+salmon_0.025_9000_10000 <- subset(salmon_0.025, rownames(salmon_0.025) %in% quant_9000_10000$Name)
+
+
+
+
+cor_0.025_below_1000 <- cor(bambu_0.025_below_1000, salmon_0.025_below_1000)
+cor_0.025_1000_2000 <- cor(bambu_0.025_1000_2000, salmon_0.025_1000_2000)
+cor_0.025_2000_3000 <- cor(bambu_0.025_2000_3000, salmon_0.025_2000_3000)
+cor_0.025_3000_4000 <- cor(bambu_0.025_3000_4000, salmon_0.025_3000_4000)
+cor_0.025_4000_5000 <- cor(bambu_0.025_4000_5000, salmon_0.025_4000_5000)
+
+cor_0.025_5000_6000 <- cor(bambu_0.025_5000_6000, salmon_0.025_5000_6000)
+cor_0.025_6000_7000 <- cor(bambu_0.025_6000_7000, salmon_0.025_6000_7000)
+cor_0.025_7000_8000 <- cor(bambu_0.025_7000_8000, salmon_0.025_7000_8000)
+cor_0.025_8000_9000 <- cor(bambu_0.025_8000_9000, salmon_0.025_8000_9000)
+cor_0.025_9000_10000 <- cor(bambu_0.025_9000_10000, salmon_0.025_9000_10000)
+
+sum1 <- sum(as.matrix(cor_0.025_below_1000))
+sum2 <- sum(as.matrix(cor_0.025_1000_2000))
+sum3 <- sum(as.matrix(cor_0.025_2000_3000))
+sum4 <- sum(as.matrix(cor_0.025_3000_4000))
+sum5 <- sum(as.matrix(cor_0.025_4000_5000))
+sum6 <- sum(as.matrix(cor_0.025_5000_6000))
+sum7 <- sum(as.matrix(cor_0.025_6000_7000))
+sum8 <- sum(as.matrix(cor_0.025_7000_8000))
+sum9 <- sum(as.matrix(cor_0.025_8000_9000))
+sum10 <- sum(as.matrix(cor_0.025_9000_10000))
+
+
+pheatmap(cor_0.025_1000_2000, cluster_rows = FALSE, cluster_cols = FALSE, main = "Correlation transcript length 1000-2000 pearson ")
+
+
+sums_df <- data.frame(
+  Range = c(1000,2000,3000,4000,5000,6000,7000,8000,9000,10000),
+  Sum = c(sum1, sum2, sum3, sum4, sum5, sum6, sum7, sum8, sum9, sum10)
+)
+
+
+ggplot(sums_df, aes(x = Range, y = Sum)) +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "Scatter plot of summed up pearson correlations stratified by transcript length", x = "Range of transcript length", y = "Summed up correlation")+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  stat_smooth(method="lm", col = "red", lty = 2)
+
+
+cor_0.025_below_1000_sp <- cor(bambu_0.025_below_1000, salmon_0.025_below_1000, method = 'spearman')
+cor_0.025_1000_2000_sp <- cor(bambu_0.025_1000_2000, salmon_0.025_1000_2000, method = 'spearman')
+cor_0.025_2000_3000_sp <- cor(bambu_0.025_2000_3000, salmon_0.025_2000_3000, method = 'spearman')
+cor_0.025_3000_4000_sp <- cor(bambu_0.025_3000_4000, salmon_0.025_3000_4000, method = 'spearman')
+cor_0.025_4000_5000_sp <- cor(bambu_0.025_4000_5000, salmon_0.025_4000_5000, method = 'spearman')
+
+cor_0.025_5000_6000_sp <- cor(bambu_0.025_5000_6000, salmon_0.025_5000_6000, method = 'spearman')
+cor_0.025_6000_7000_sp <- cor(bambu_0.025_6000_7000, salmon_0.025_6000_7000, method = 'spearman')
+cor_0.025_7000_8000_sp <- cor(bambu_0.025_7000_8000, salmon_0.025_7000_8000, method = 'spearman')
+cor_0.025_8000_9000_sp <- cor(bambu_0.025_8000_9000, salmon_0.025_8000_9000, method = 'spearman')
+cor_0.025_9000_10000_sp <- cor(bambu_0.025_9000_10000, salmon_0.025_9000_10000, method = 'spearman')
+
+sum1_sp <- sum(as.matrix(cor_0.025_below_1000_sp))
+sum2_sp <- sum(as.matrix(cor_0.025_1000_2000_sp))
+sum3_sp <- sum(as.matrix(cor_0.025_2000_3000_sp))
+sum4_sp <- sum(as.matrix(cor_0.025_3000_4000_sp))
+sum5_sp <- sum(as.matrix(cor_0.025_4000_5000_sp))
+sum6_sp <- sum(as.matrix(cor_0.025_5000_6000_sp))
+sum7_sp <- sum(as.matrix(cor_0.025_6000_7000_sp))
+sum8_sp <- sum(as.matrix(cor_0.025_7000_8000_sp))
+sum9_sp <- sum(as.matrix(cor_0.025_8000_9000_sp))
+sum10_sp <- sum(as.matrix(cor_0.025_9000_10000_sp))
+
+
+#pheatmap(cor_0.025_below_1000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.025_1000_2000_sp, cluster_rows = FALSE, cluster_cols = FALSE,  main = "Correlation transcript length 1000-2000 spearman")
+#pheatmap(cor_0.025_2000_3000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.025_3000_4000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.025_4000_5000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.025_5000_6000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.025_6000_7000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.025_7000_8000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.025_8000_9000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.025_9000_10000_sp, cluster_rows = FALSE, cluster_cols = FALSE)
+
+sums_df_sp <- data.frame(
+  Range = c(1000,2000,3000,4000,5000,6000,7000,8000,9000,10000),
+  Sum = c(sum1_sp, sum2_sp, sum3_sp, sum4_sp, sum5_sp, sum6_sp, sum7_sp, sum8_sp, sum9_sp, sum10_sp)
+)
+
+
+scatter1 <- ggplot(sums_df_sp, aes(x = Range, y = Sum)) +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "0.025", x = "Range", y = "Summed up correlation")+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
+  scale_color_viridis() +
+  stat_smooth(method="lm", col = "red", lty = 2)
+
+
+```
+The pearson plots do not look like usual heat map as the day 2 - rep 1 - bambu is highly correlated with all samples of salmon and the rest of the correlations seem quite low. Also the scatter plot is widely spread and one can see no clear trend of the summed up correlation as it is jumping up and down. When observing the 0.025 heat map with spearman correlation one sees most of the samples being highly correlated with itself (or the replicates) and a bit clearer the highly correlated diagonal usually seen in heat maps. 
+
+```{r, echo = FALSE}
+#0.05
+bambu_0.05_below_1000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_below_1000$Name)
+salmon_0.05_below_1000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_below_1000$Name)
+
+bambu_0.05_1000_2000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_1000_2000$Name)
+salmon_0.05_1000_2000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_1000_2000$Name)
+
+bambu_0.05_2000_3000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_2000_3000$Name)
+salmon_0.05_2000_3000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_2000_3000$Name)
+
+bambu_0.05_3000_4000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_3000_4000$Name)
+salmon_0.05_3000_4000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_3000_4000$Name)
+
+bambu_0.05_4000_5000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_4000_5000$Name)
+salmon_0.05_4000_5000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_4000_5000$Name)
+
+bambu_0.05_5000_6000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_5000_6000$Name)
+salmon_0.05_5000_6000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_5000_6000$Name)
+
+bambu_0.05_6000_7000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_6000_7000$Name)
+salmon_0.05_6000_7000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_6000_7000$Name)
+
+bambu_0.05_7000_8000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_7000_8000$Name)
+salmon_0.05_7000_8000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_7000_8000$Name)
+
+bambu_0.05_8000_9000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_8000_9000$Name)
+salmon_0.05_8000_9000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_8000_9000$Name)
+
+bambu_0.05_9000_10000 <- subset(bambu_0.05, rownames(bambu_0.05) %in% quant_9000_10000$Name)
+salmon_0.05_9000_10000 <- subset(salmon_0.05, rownames(salmon_0.05) %in% quant_9000_10000$Name)
+
+
+
+
+cor_0.05_below_1000 <- cor(bambu_0.05_below_1000, salmon_0.05_below_1000, method = 'spearman')
+cor_0.05_1000_2000 <- cor(bambu_0.05_1000_2000, salmon_0.05_1000_2000, method = 'spearman')
+cor_0.05_2000_3000 <- cor(bambu_0.05_2000_3000, salmon_0.05_2000_3000, method = 'spearman')
+cor_0.05_3000_4000 <- cor(bambu_0.05_3000_4000, salmon_0.05_3000_4000, method = 'spearman')
+cor_0.05_4000_5000 <- cor(bambu_0.05_4000_5000, salmon_0.05_4000_5000, method = 'spearman')
+
+cor_0.05_5000_6000 <- cor(bambu_0.05_5000_6000, salmon_0.05_5000_6000, method = 'spearman')
+cor_0.05_6000_7000 <- cor(bambu_0.05_6000_7000, salmon_0.05_6000_7000, method = 'spearman')
+cor_0.05_7000_8000 <- cor(bambu_0.05_7000_8000, salmon_0.05_7000_8000, method = 'spearman')
+cor_0.05_8000_9000 <- cor(bambu_0.05_8000_9000, salmon_0.05_8000_9000, method = 'spearman')
+cor_0.05_9000_10000 <- cor(bambu_0.05_9000_10000, salmon_0.05_9000_10000, method = 'spearman')
+
+
+#pheatmap(cor_0.05_below_1000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.05_1000_2000, cluster_rows = FALSE, cluster_cols = FALSE,  main = "Correlation transcript length 1000-2000 spearman")
+#pheatmap(cor_0.05_2000_3000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.05_3000_4000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.05_4000_5000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.05_5000_6000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.05_6000_7000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.05_7000_8000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.05_8000_9000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.05_9000_10000, cluster_rows = FALSE, cluster_cols = FALSE)
+
+sum1_0.05 <- sum(as.matrix(cor_0.05_below_1000))
+sum2_0.05 <- sum(as.matrix(cor_0.05_1000_2000))
+sum3_0.05 <- sum(as.matrix(cor_0.05_2000_3000))
+sum4_0.05 <- sum(as.matrix(cor_0.05_3000_4000))
+sum5_0.05 <- sum(as.matrix(cor_0.05_4000_5000))
+sum6_0.05 <- sum(as.matrix(cor_0.05_5000_6000))
+sum7_0.05 <- sum(as.matrix(cor_0.05_6000_7000))
+sum8_0.05 <- sum(as.matrix(cor_0.05_7000_8000))
+sum9_0.05 <- sum(as.matrix(cor_0.05_8000_9000))
+sum10_0.05 <- sum(as.matrix(cor_0.05_9000_10000))
+sums_df_0.05 <- data.frame(
+  Range = c(1000,2000,3000,4000,5000,6000,7000,8000,9000,10000),
+  Sum = c(sum1_0.05, sum2_0.05, sum3_0.05, sum4_0.05, sum5_0.05, sum6_0.05, sum7_0.05, sum8_0.05, sum9_0.05, sum10_0.05)
+)
+
+
+scatter2 <- ggplot(sums_df_0.05, aes(x = Range, y = Sum)) +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "0.05", x = "Range", y = "Summed up correlation")+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
+  scale_color_viridis() +
+  stat_smooth(method="lm", col = "red", lty = 2)
+
+```
+
+```{r, echo = FALSE}
+#0.1
+bambu_0.1_below_1000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_below_1000$Name)
+salmon_0.1_below_1000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_below_1000$Name)
+
+bambu_0.1_1000_2000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_1000_2000$Name)
+salmon_0.1_1000_2000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_1000_2000$Name)
+
+bambu_0.1_2000_3000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_2000_3000$Name)
+salmon_0.1_2000_3000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_2000_3000$Name)
+
+bambu_0.1_3000_4000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_3000_4000$Name)
+salmon_0.1_3000_4000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_3000_4000$Name)
+
+bambu_0.1_4000_5000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_4000_5000$Name)
+salmon_0.1_4000_5000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_4000_5000$Name)
+
+bambu_0.1_5000_6000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_5000_6000$Name)
+salmon_0.1_5000_6000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_5000_6000$Name)
+
+bambu_0.1_6000_7000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_6000_7000$Name)
+salmon_0.1_6000_7000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_6000_7000$Name)
+
+bambu_0.1_7000_8000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_7000_8000$Name)
+salmon_0.1_7000_8000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_7000_8000$Name)
+
+bambu_0.1_8000_9000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_8000_9000$Name)
+salmon_0.1_8000_9000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_8000_9000$Name)
+
+bambu_0.1_9000_10000 <- subset(bambu_0.1, rownames(bambu_0.1) %in% quant_9000_10000$Name)
+salmon_0.1_9000_10000 <- subset(salmon_0.1, rownames(salmon_0.1) %in% quant_9000_10000$Name)
+
+
+
+
+cor_0.1_below_1000 <- cor(bambu_0.1_below_1000, salmon_0.1_below_1000, method = 'spearman')
+cor_0.1_1000_2000 <- cor(bambu_0.1_1000_2000, salmon_0.1_1000_2000, method = 'spearman')
+cor_0.1_2000_3000 <- cor(bambu_0.1_2000_3000, salmon_0.1_2000_3000, method = 'spearman')
+cor_0.1_3000_4000 <- cor(bambu_0.1_3000_4000, salmon_0.1_3000_4000, method = 'spearman')
+cor_0.1_4000_5000 <- cor(bambu_0.1_4000_5000, salmon_0.1_4000_5000, method = 'spearman')
+
+cor_0.1_5000_6000 <- cor(bambu_0.1_5000_6000, salmon_0.1_5000_6000, method = 'spearman')
+cor_0.1_6000_7000 <- cor(bambu_0.1_6000_7000, salmon_0.1_6000_7000, method = 'spearman')
+cor_0.1_7000_8000 <- cor(bambu_0.1_7000_8000, salmon_0.1_7000_8000, method = 'spearman')
+cor_0.1_8000_9000 <- cor(bambu_0.1_8000_9000, salmon_0.1_8000_9000, method = 'spearman')
+cor_0.1_9000_10000 <- cor(bambu_0.1_9000_10000, salmon_0.1_9000_10000, method = 'spearman')
+
+
+#pheatmap(cor_0.1_below_1000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.1_1000_2000, cluster_rows = FALSE, cluster_cols = FALSE,  main = "Correlation transcript length 1000-2000 spearman")
+#pheatmap(cor_0.1_2000_3000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.1_3000_4000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.1_4000_5000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.1_5000_6000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.1_6000_7000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.1_7000_8000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.1_8000_9000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.1_9000_10000, cluster_rows = FALSE, cluster_cols = FALSE)
+
+sum1_0.1 <- sum(as.matrix(cor_0.1_below_1000))
+sum2_0.1 <- sum(as.matrix(cor_0.1_1000_2000))
+sum3_0.1 <- sum(as.matrix(cor_0.1_2000_3000))
+sum4_0.1 <- sum(as.matrix(cor_0.1_3000_4000))
+sum5_0.1 <- sum(as.matrix(cor_0.1_4000_5000))
+sum6_0.1 <- sum(as.matrix(cor_0.1_5000_6000))
+sum7_0.1 <- sum(as.matrix(cor_0.1_6000_7000))
+sum8_0.1 <- sum(as.matrix(cor_0.1_7000_8000))
+sum9_0.1 <- sum(as.matrix(cor_0.1_8000_9000))
+sum10_0.1 <- sum(as.matrix(cor_0.1_9000_10000))
+sums_df_0.1 <- data.frame(
+  Range = c(1000,2000,3000,4000,5000,6000,7000,8000,9000,10000),
+  Sum = c(sum1_0.1, sum2_0.1, sum3_0.1, sum4_0.1, sum5_0.1, sum6_0.1, sum7_0.1, sum8_0.1, sum9_0.1, sum10_0.1)
+)
+
+
+scatter3 <- ggplot(sums_df_0.1, aes(x = Range, y = Sum)) +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "0.1", x = "Range", y = "Summed up correlation")+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
+  scale_color_viridis()+
+  stat_smooth(method="lm", col = "red", lty = 2)
+```
+
+```{r, echo = FALSE}
+#0.2
+bambu_0.2_below_1000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_below_1000$Name)
+salmon_0.2_below_1000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_below_1000$Name)
+
+bambu_0.2_1000_2000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_1000_2000$Name)
+salmon_0.2_1000_2000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_1000_2000$Name)
+
+bambu_0.2_2000_3000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_2000_3000$Name)
+salmon_0.2_2000_3000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_2000_3000$Name)
+
+bambu_0.2_3000_4000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_3000_4000$Name)
+salmon_0.2_3000_4000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_3000_4000$Name)
+
+bambu_0.2_4000_5000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_4000_5000$Name)
+salmon_0.2_4000_5000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_4000_5000$Name)
+
+bambu_0.2_5000_6000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_5000_6000$Name)
+salmon_0.2_5000_6000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_5000_6000$Name)
+
+bambu_0.2_6000_7000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_6000_7000$Name)
+salmon_0.2_6000_7000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_6000_7000$Name)
+
+bambu_0.2_7000_8000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_7000_8000$Name)
+salmon_0.2_7000_8000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_7000_8000$Name)
+
+bambu_0.2_8000_9000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_8000_9000$Name)
+salmon_0.2_8000_9000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_8000_9000$Name)
+
+bambu_0.2_9000_10000 <- subset(bambu_0.2, rownames(bambu_0.2) %in% quant_9000_10000$Name)
+salmon_0.2_9000_10000 <- subset(salmon_0.2, rownames(salmon_0.2) %in% quant_9000_10000$Name)
+
+
+
+
+cor_0.2_below_1000 <- cor(bambu_0.2_below_1000, salmon_0.2_below_1000, method = 'spearman')
+cor_0.2_1000_2000 <- cor(bambu_0.2_1000_2000, salmon_0.2_1000_2000, method = 'spearman')
+cor_0.2_2000_3000 <- cor(bambu_0.2_2000_3000, salmon_0.2_2000_3000, method = 'spearman')
+cor_0.2_3000_4000 <- cor(bambu_0.2_3000_4000, salmon_0.2_3000_4000, method = 'spearman')
+cor_0.2_4000_5000 <- cor(bambu_0.2_4000_5000, salmon_0.2_4000_5000, method = 'spearman')
+cor_0.2_5000_6000 <- cor(bambu_0.2_5000_6000, salmon_0.2_5000_6000, method = 'spearman')
+cor_0.2_6000_7000 <- cor(bambu_0.2_6000_7000, salmon_0.2_6000_7000, method = 'spearman')
+cor_0.2_7000_8000 <- cor(bambu_0.2_7000_8000, salmon_0.2_7000_8000, method = 'spearman')
+cor_0.2_8000_9000 <- cor(bambu_0.2_8000_9000, salmon_0.2_8000_9000, method = 'spearman')
+cor_0.2_9000_10000 <- cor(bambu_0.2_9000_10000, salmon_0.2_9000_10000, method = 'spearman')
+
+#pheatmap(cor_0.2_below_1000, cluster_rows = FALSE, cluster_cols = FALSE)
+pheatmap(cor_0.2_1000_2000, cluster_rows = FALSE, cluster_cols = FALSE,  main = "Correlation transcript length 1000-2000 spearman")
+#pheatmap(cor_0.2_2000_3000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.2_3000_4000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.2_4000_5000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.2_5000_6000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.2_6000_7000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.2_7000_8000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.2_8000_9000, cluster_rows = FALSE, cluster_cols = FALSE)
+#pheatmap(cor_0.2_9000_10000, cluster_rows = FALSE, cluster_cols = FALSE)
+
+sum1_0.2 <- sum(as.matrix(cor_0.2_below_1000))
+sum2_0.2 <- sum(as.matrix(cor_0.2_1000_2000))
+sum3_0.2 <- sum(as.matrix(cor_0.2_2000_3000))
+sum4_0.2 <- sum(as.matrix(cor_0.2_3000_4000))
+sum5_0.2 <- sum(as.matrix(cor_0.2_4000_5000))
+sum6_0.2 <- sum(as.matrix(cor_0.2_5000_6000))
+sum7_0.2 <- sum(as.matrix(cor_0.2_6000_7000))
+sum8_0.2 <- sum(as.matrix(cor_0.2_7000_8000))
+sum9_0.2 <- sum(as.matrix(cor_0.2_8000_9000))
+sum10_0.2 <- sum(as.matrix(cor_0.2_9000_10000))
+sums_df_0.2 <- data.frame(
+  Range = c(1000,2000,3000,4000,5000,6000,7000,8000,9000,10000),
+  Sum = c(sum1_0.2, sum2_0.2, sum3_0.2, sum4_0.2, sum5_0.2, sum6_0.2, sum7_0.2, sum8_0.2, sum9_0.2, sum10_0.2)
+)
+
+
+scatter4 <- ggplot(sums_df_0.2, aes(x = Range, y = Sum)) +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "0.2", x = "Range", y = "Summed up correlation")+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size = 9), axis.title.x = element_text(size = 9), axis.title.y = element_text(size = 9)) +
+  scale_color_viridis()+
+  stat_smooth(method="lm", col = "red", lty = 2)
+
+scatter_total <- scatter1 + scatter2 + scatter3 + scatter4
+scatter_total <- scatter_total +
+  plot_layout(nrow = 2, byrow = TRUE) +
+  plot_annotation(title = "Scatter plots of summed up correlations stratified by range of transcript lengths (0-10000)")
+scatter_total
+
+```
+The rest of the heat maps for the other cutoffs (0.05, 0.1, 0.2) look very similar to the 0.025 heat map. Looking at the scatter plots of summed up correlations stratified by range of transcript lengths they also look almost the same between the different cutoffs. One can observe the clear trend that with a higher transcript length the correlation is also higher but for very small transcript lengths (<1000) the correlation is very low. 
+
+#### MDS
+
+```{r, echo = FALSE}
+group <- factor(df_list_meta$metadata$time)
+
+## Salmon 0.025
+y_salmon_0.025 <- DGEList(counts = salmon_0.025_count, group = group)
+
+mds <- plotMDS(y_salmon_0.025, plot = FALSE) # uses plotMDS.DGEList
+
+df <- data.frame(
+  MDS1 = mds$x,
+  MDS2 = mds$y,
+  group = group,
+  shortname = df_list_meta$metadata$condition
+)
+mds1 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  labs(title = "MDS Salmon 0.025", color = "Group") +
+  scale_color_viridis_d()
+
+## Bambu 0.025
+y_bambu_0.025 <- DGEList(counts = bambu_0.025_count, group = group)
+
+mds <- plotMDS(y_bambu_0.025, plot = FALSE) # uses plotMDS.DGEList
+
+df <- data.frame(
+  MDS1 = mds$x,
+  MDS2 = mds$y,
+  group = group,
+  shortname = df_list_meta$metadata$condition
+)
+mds2 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  labs(title = "MDS Bambu 0.025", color = "Group") +
+  scale_color_viridis_d()
+
+
+## Salmon 0.05
+y_salmon_0.05 <- DGEList(counts = salmon_0.05_count, group = group)
+
+mds <- plotMDS(y_salmon_0.05, plot = FALSE) # uses plotMDS.DGEList
+
+df <- data.frame(
+  MDS1 = mds$x,
+  MDS2 = mds$y,
+  group = group,
+  shortname = df_list_meta$metadata$condition
+)
+mds3 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  labs(title = "MDS Salmon 0.05", color = "Group") +
+  scale_color_viridis_d()
+
+## Bambu 0.05
+y_bambu_0.05 <- DGEList(counts = bambu_0.05_count, group = group)
+
+mds <- plotMDS(y_bambu_0.05, plot = FALSE) # uses plotMDS.DGEList
+
+df <- data.frame(
+  MDS1 = mds$x,
+  MDS2 = mds$y,
+  group = group,
+  shortname = df_list_meta$metadata$condition
+)
+mds4 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  labs(title = "MDS Bambu 0.05", color = "Group") +
+  scale_color_viridis_d()
+
+## Salmon 0.1
+y_salmon_0.1 <- DGEList(counts = salmon_0.1_count, group = group)
+
+mds <- plotMDS(y_salmon_0.1, plot = FALSE) # uses plotMDS.DGEList
+
+df <- data.frame(
+  MDS1 = mds$x,
+  MDS2 = mds$y,
+  group = group,
+  shortname = df_list_meta$metadata$condition
+)
+mds5<- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "MDS Salmon 0.1", color = "Group") +
+  scale_color_viridis_d()
+
+## Bambu 0.1
+y_bambu_0.1 <- DGEList(counts = bambu_0.1_count, group = group)
+
+mds <- plotMDS(y_bambu_0.1, plot = FALSE) # uses plotMDS.DGEList
+
+df <- data.frame(
+  MDS1 = mds$x,
+  MDS2 = mds$y,
+  group = group,
+  shortname = df_list_meta$metadata$condition
+)
+mds6 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "MDS Bambu 0.1", color = "Group") +
+  scale_color_viridis_d()
+
+## Salmon 0.2
+y_salmon_0.2 <- DGEList(counts = salmon_0.2_count, group = group)
+
+mds <- plotMDS(y_salmon_0.2, plot = FALSE) # uses plotMDS.DGEList
+
+df <- data.frame(
+  MDS1 = mds$x,
+  MDS2 = mds$y,
+  group = group,
+  shortname = df_list_meta$metadata$condition
+)
+mds7 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "MDS Salmon 0.2", color = "Group") +
+  scale_color_viridis_d()
+
+## Bambu 0.2
+y_bambu_0.2 <- DGEList(counts = bambu_0.2_count, group = group)
+
+mds <- plotMDS(y_bambu_0.2, plot = FALSE) # uses plotMDS.DGEList
+
+df <- data.frame(
+  MDS1 = mds$x,
+  MDS2 = mds$y,
+  group = group,
+  shortname = df_list_meta$metadata$condition
+)
+mds8 <- ggplot(df, aes(x = MDS1, y = MDS2, colour = group)) +
+  geom_point(size = 4) +
+  geom_text(aes(label = shortname), vjust = -1, size = 3) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "MDS Bambu 0.2", color = "Group") +
+  scale_color_viridis_d()
+
+mdstotal1 <- mds1 + mds2 
+mdstotal2 <- mds3 + mds4 
+mdstotal1
+mdstotal2
+
+```
+The MDS plots look very similiar between all the 4 NDR cutoffs. When comparing the MDS plots between Salmon and Bambu the MDS1 separation by day is almost the same with the MDS2 separation being a bit more different. In Bambu the replicated are grouped a bit closer together then in Salmon and fewer samples are above 0. 
+
+
+
+
+### Spike-ins
+
+
+
+
+### Differential Gene Expression and Gene Set Analyses
+
+Since the differential expression analysis of the different NDR thresholds showed very similar results, only the 0.2 NDR threshold is shown here. The analysis of all 4 NDR thresholds can be found in the files `dge_analysis.html` and `dge_analysis.qmd`.
+
+#### Load data
+
+The data is loaded from RDS-objects that have been created with the `import_processing.qmd` file. For each of the 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), two data frames containing the expression data (counts) of the two different technologies exist:
+
+1. Illumina sequencing and Salmon quantification (short-read)
+2. PacBio sequencing and Bambu quantification (long-read)
+
+In total, this adds up to 8 different data frames. Each of these data frames contains 11 samples, which are replicates from one of six different time points. Each time point has 1-3 replicates. As stated above, in this file only the results of the 0.2 NDR threshold data is shown. For the differential gene expression, the counts are loaded. For the investigation of genes of interest, the TPMs are loaded.
+
+```{r}
+df_list_bambu <- readRDS("../bambu.rds")
+df_list_salmon <- readRDS("../salmon.rds")
+df_list_meta <- readRDS("../meta.rds")
+```
+
+```{r}
+bambu_0.2_gene <- df_list_bambu$bambu_0.2_gene
+salmon_0.2_gene <- df_list_salmon$salmon_0.2_gene
+(meta_samples <- df_list_meta$metadata)
+
+bambu_0.2_tpm_gene <- df_list_bambu$bambu_0.2_tpm_gene
+salmon_0.2_tpm_gene <- df_list_salmon$salmon_0.2_tpm_gene
+```
+
+#### Genes of Interest
+
+To investigate the expression changes in the genes of interest (see above), their average expression at each time point was computed and the plotted.
+
+```{r}
+# calculate average expression per time point for Salmon and Bambu
+
+## Salmon
+# calculate the average expression of each gene at each time point (average of the replicates)
+avg_expr_salmon <- as.data.frame(sapply(sort(unique(meta_samples$time))[c(1,4,6)], function(time) {
+  rowMeans(salmon_0.2_tpm_gene[, which(meta_samples$time == time)])
+}))
+
+# for time points 1, 2 and 4, only one replicate exists
+avg_expr_salmon$V4 <- unlist(as.vector(salmon_0.2_tpm_gene[, which(meta_samples$time == 1)]))
+avg_expr_salmon$V5 <- unlist(as.vector(salmon_0.2_tpm_gene[, which(meta_samples$time == 2)]))
+avg_expr_salmon$V6 <- unlist(as.vector(salmon_0.2_tpm_gene[, which(meta_samples$time == 4)]))
+
+avg_expr_salmon <- avg_expr_salmon[, c(1,4,5,2,6,3)]
+
+colnames(avg_expr_salmon) <- sort(unique(meta_samples$time))
+
+## Bambu
+# calculate the average expression of each gene at each time point (average of the replicates)
+avg_expr_bambu <- as.data.frame(sapply(sort(unique(meta_samples$time))[c(1,4,6)], function(time) {
+  rowMeans(bambu_0.2_tpm_gene[, which(meta_samples$time == time)])
+}))
+
+# for time points 1, 2 and 4, only one replicate exists
+avg_expr_bambu$V4 <- unlist(as.vector(bambu_0.2_tpm_gene[, which(meta_samples$time == 1)]))
+avg_expr_bambu$V5 <- unlist(as.vector(bambu_0.2_tpm_gene[, which(meta_samples$time == 2)]))
+avg_expr_bambu$V6 <- unlist(as.vector(bambu_0.2_tpm_gene[, which(meta_samples$time == 4)]))
+
+avg_expr_bambu <- avg_expr_bambu[, c(1,4,5,2,6,3)]
+
+colnames(avg_expr_bambu) <- sort(unique(meta_samples$time))
+```
+
+```{r echo=FALSE}
+# WNT2
+
+## Salmon
+tpm_salmon <- unname(unlist(avg_expr_salmon["ENSG00000105989.10", ]))
+df_salmon <- data.frame(tpm = tpm_salmon, time = c(0, 1, 2, 3, 4, 5))
+
+plot_salmon <- ggplot(data = df_salmon,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  labs(title = "Illumina+Salmon",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+## Bambu
+tpm_bambu <- unname(unlist(avg_expr_bambu["ENSG00000105989.10", ]))
+df_bambu <- data.frame(tpm = tpm_bambu, time = c(0, 1, 2, 3, 4, 5))
+
+plot_bambu <- ggplot(data = df_bambu,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  labs(title = "PacBio+Bambu",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+title <- ggdraw() + draw_label("TPM of WNT2 (Wnt family member 2)", fontface='bold')
+p <- plot_grid(plot_bambu, plot_salmon, ncol=2)
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+The first gene investigated is Wnt2 (Wnt family member 2). This gene was targeted by the treatment on days 0 and 1. Here, the addition of GSKi activated Wnt-signaling which in turn activated B-catenin providing transcriptional regulation. The plot above shows a general increase in Wnt2 expression over the time course, however, especially in the Salmon data, low (or no) expression is detected in the first days (days 0 - 2).
+
+```{r echo=FALSE}
+# CTNNB1
+
+## Salmon
+tpm_salmon <- unname(unlist(avg_expr_salmon["ENSG00000168036.18", ]))
+df_salmon <- data.frame(tpm = tpm_salmon, time = c(0, 1, 2, 3, 4, 5))
+
+plot_salmon <- ggplot(data = df_salmon,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  labs(title = "Illumina+Salmon",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+## Bambu
+tpm_bambu <- unname(unlist(avg_expr_bambu["ENSG00000168036.18", ]))
+df_bambu <- data.frame(tpm = tpm_bambu, time = c(0, 1, 2, 3, 4, 5))
+
+plot_bambu <- ggplot(data = df_bambu,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  labs(title = "PacBio+Bambu",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+title <- ggdraw() + draw_label("TPM of CTNNB1 (catenin beta 1)", fontface='bold')
+p <- plot_grid(plot_bambu, plot_salmon, ncol=2)
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+The next gene of interest is CTNNB1 (catenin beta 1), which is activated by Wnt-signalling. Here, a trend is visible showing an increase in expression in the first days, and then the expression reaches a plateau for the last days. Interestingly, even though CTNNB1 depends on the activation of Wnt-signalling, raising expression levels could be detected for CTNNB1 before Wnt2.
+
+```{r echo=FALSE}
+# SMAD1
+
+## Salmon
+tpm_salmon <- unname(unlist(avg_expr_salmon["ENSG00000170365.10", ]))
+df_salmon <- data.frame(tpm = tpm_salmon, time = c(0, 1, 2, 3, 4, 5))
+
+plot_salmon <- ggplot(data = df_salmon,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  labs(title = "Illumina+Salmon",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+## Bambu
+tpm_bambu <- unname(unlist(avg_expr_bambu["ENSG00000170365.10", ]))
+df_bambu <- data.frame(tpm = tpm_bambu, time = c(0, 1, 2, 3, 4, 5))
+
+plot_bambu <- ggplot(data = df_bambu,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  labs(title = "PacBio+Bambu",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+title <- ggdraw() + draw_label("TPM of SMAD1 (SMAD family member 1)", fontface='bold')
+p <- plot_grid(plot_bambu, plot_salmon, ncol=2)
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+On days 3 - 5, the treatment continues with the addition of BMP4 and VEGF. BMP4 induces the transition of mesodermal cells into endothelial lineages through usage of upstream Indian-Hedgehog signaling and downstream Smad signaling. Therefore, the gene SMAD1 (SMAD family member 1) was investigated next. The plot above shows slight increase in SMAD1 expression during the first days, and then more or less constant expression. These observations are surprising since BMP4 is only added starting from day 3.
+
+```{r echo=FALSE}
+# ETV2
+
+## Salmon
+tpm_salmon <- unname(unlist(avg_expr_salmon["ENSG00000105672.15", ]))
+df_salmon <- data.frame(tpm = tpm_salmon, time = c(0, 1, 2, 3, 4, 5))
+
+plot_salmon <- ggplot(data = df_salmon,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  labs(title = "Illumina+Salmon",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+## Bambu
+tpm_bambu <- unname(unlist(avg_expr_bambu["ENSG00000105672.15", ]))
+df_bambu <- data.frame(tpm = tpm_bambu, time = c(0, 1, 2, 3, 4, 5))
+
+plot_bambu <- ggplot(data = df_bambu,
+       mapping = aes(
+         x = as.factor(time),
+         y = tpm,
+         fill = as.factor(time)
+       )) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  scale_fill_viridis_d() +
+  labs(title = "PacBio+Bambu",
+       x = "Day",
+       y = "TPM",
+       fill = "Day")
+
+title <- ggdraw() + draw_label("TPM of ETV2 (ETS variant transcription factor 2)", fontface='bold')
+p <- plot_grid(plot_bambu, plot_salmon, ncol=2)
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+
+Lastly, the gene ETV2 (ETS variant transcription factor 2) was investigated. It is activated due to the addition of VEGF which is added starting from day 3 as described above. Here, almost no expression can be detected before day 3, followed by a major increase on day 3 and decreasing expression on days 4 and 5.
+
+When comparing the expression levels from the Illumina+Salmon data and from the PacBio+Bambu data, the general trend of the expression levels seem to be similar.
+
+#### Create DGEList Objects and Filter Expressed Genes
+
+The expression data was then filtered using the function `filterByExpr` to exclude genes that do not show high enough expression or do not show expression in enough samples.
+
+```{r}
+day <- factor(meta_samples$time)
+```
+
+```{r}
+y_salmon_0.2 <- DGEList(counts = salmon_0.2_gene, group = day)
+y_bambu_0.2 <- DGEList(counts = bambu_0.2_gene, group = day)
+
+expressed_salmon <- filterByExpr(y_salmon_0.2)
+expressed_bambu <- filterByExpr(y_bambu_0.2)
+
+not_expressed <-
+  intersect(names(expressed_salmon[!expressed_salmon]), names(expressed_bambu[!expressed_bambu]))
+
+if (length(not_expressed) > 0) {
+  y_salmon_0.2 <-
+    y_salmon_0.2[-which(rownames(salmon_0.2_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+  y_bambu_0.2 <-
+    y_bambu_0.2[-which(rownames(bambu_0.2_gene) %in% not_expressed), , keep.lib.sizes = FALSE]
+}
+```
+
+```{r echo=FALSE, include=FALSE}
+dim(y_salmon_0.2) == dim(y_bambu_0.2)
+```
+
+#### Differential Gene Expression Analysis
+
+The differential gene expression analysis aims to identify genes that are differentially expressed over the time course. These results were computed here only for the 0.2 NDR threshold of both technologies, and were then overlayed to compare the two technologies, so the long-read and short-read sequencing.
+
+The design matrix was created in a way that the first time point, `day0`, was used as a baseline (intercept of the model).
+
+```{r}
+# create design matrix
+design <- model.matrix( ~ day)
+design
+```
+
+The here presented NDR threshold is 0.2. The differential expression analysis was performed with `edgeR`, and genes were considered as differentially expressed if the adjusted p-value of the likelihood ratio test between the full and the reduced model was below 0.01. The p-value adjustment was performed using the Benjamini-Hochberg method.
+
+```{r}
+# Salmon 0.2
+y_salmon_0.2 <- calcNormFactors(y_salmon_0.2)
+## estimate dispersion
+y_salmon_0.2 <- estimateDisp(y_salmon_0.2, design)
+## fit the negative binomial model
+fit <- glmFit(y_salmon_0.2, design)
+## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
+lrtS <- glmLRT(fit, coef = 2:6)
+## save lrt for pathway analysis
+lrt_pathway <- lrtS
+#topTags(lrt)
+## multiple testing correction
+decide_dif_s0.2 <-
+  decideTests.DGELRT(lrtS,
+                     adjust.method = "BH",
+                     p.value = 0.01)
+summary(decide_dif_s0.2)
+
+# Bambu 0.2
+y_bambu_0.2 <- calcNormFactors(y_bambu_0.2)
+## estimate dispersion
+y_bambu_0.2 <- estimateDisp(y_bambu_0.2, design)
+## fit the negative binomial model
+fit <- glmFit(y_bambu_0.2, design)
+## conduct genewise statistical tests for a given coefficient contrast (coef = row of design matrix)
+lrtB <- glmLRT(fit, coef = 2:6)
+#topTags(lrt)
+## multiple testing correction
+decide_dif_b0.2 <-
+  decideTests.DGELRT(lrtB,
+                     adjust.method = "BH",
+                     p.value = 0.01)
+summary(decide_dif_b0.2)
+```
+
+For Illumina+Salmon, out of the 26012 tested genes, 7723 were identified as differentially expressed. In the case of PacBio+Bambu, 8345 genes were identified as differentially expressed. Both methods identified roughly the same amount of genes as differentially expressed. 
+
+```{r echo=FALSE}
+# overlay results of both technologies
+
+de_genes_0.2 <- as.data.frame(cbind(decide_dif_s0.2, decide_dif_b0.2))
+colnames(de_genes_0.2) <- c("Salmon_0.2", "Bambu_0.2")
+upset(de_genes_0.2, sets = colnames(de_genes_0.2))
+```
+
+From the UpSet plot above it is visible that, even though identifying roughly the same number of genes as differentially expressed, the two technologies show some differences in their results. The majority of genes identified overlap, however, there are still some genes only called differentially expressed by either Illumina+Salmon or by PacBio+Bambu. To further investigate the similarities/differences, the logFC and p-values of the analysis was compared. The p-values were calculated for the likelihood ratio test, the logFC values, however, were calculated for the discrete comparisons of the days 1-5 with day 0. Here, the logFC values of day 5 were compared.
+
+```{r echo=FALSE}
+# comparison of padj and logfc
+
+padjS <- p.adjust(lrtS$table$PValue, method = "BH")
+padjB <- p.adjust(lrtB$table$PValue, method = "BH")
+padj <- data.frame(Salmon = padjS, Bambu = padjB)
+
+logfcS <- lrtS$table$logFC.day5
+logfcB <- lrtB$table$logFC.day5
+logfc <- data.frame(Salmon = logfcS, Bambu = logfcB)
+
+plot_padj_0.2 <- ggplot(data = padj, mapping = aes(x = -log10(Salmon), y = -log10(Bambu))) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of P-values (NDR=0.2)", x = "-log10 P-value (Salmon)", y = "-log10 P-value (Bambu)")
+
+plot_logfc_0.2 <- ggplot(data = logfc, mapping = aes(x = Salmon, y = Bambu)) +
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis() +
+  labs(title = "Comparison of LogFC (NDR=0.2)", x = "LogFC (Salmon)", y = "LogFC (Bambu)")
+
+plot_comparison_0.2 <- plot_padj_0.2 + plot_logfc_0.2
+plot_comparison_0.2
+```
+
+The comparison of the p-values after adjustment shows a similar trend in both technologies, but also some differences. The same is observable for the logFC values. Additionally, it is visible that many genes that show a logFC value of zero in the analysis of one technology show a (high) logFC value in the other one. This agrees with the observation made in the UpSet plot, that some genes are called differentially expressed by either of the two technologies, but not by both.
+
+After performing the differential gene expression analysis over the whole time course, the first and the last time points (days 0 and 5) were compared as discrete conditions to identify up- or down-regulated genes only comparing the begin and the end of the experiment.
+
+```{r}
+# time point comparison
+
+## Salmon
+fit <- glmFit(y_salmon_0.2, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_s0.2_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_s0.2_tp)
+```
+
+
+```{r echo=FALSE}
+plot_dge_0.2_salmon <- ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_s0.2_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression \n Salmon 0.2 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+```
+
+```{r}
+## Bambu
+fit <- glmFit(y_bambu_0.2, design)
+lrt <- glmLRT(fit, coef = 6)
+decide_dif_b0.2_tp <-
+  decideTests.DGELRT(lrt,
+                     adjust.method = "BH",
+                     p.value = 0.01,
+                     lfc = log2(2))
+summary(decide_dif_b0.2_tp)
+```
+
+```{r echo=FALSE}
+plot_dge_0.2_bambu <- ggplot(
+  data = as.data.frame(lrt$table),
+  mapping = aes(
+    x = logFC,
+    y = -log10(p.adjust(PValue, method = "BH")),
+    color = as.factor(decide_dif_b0.2_tp)
+  )
+) +
+  geom_point() +
+  geom_vline(xintercept = log2(2), linetype = "dashed") +
+  geom_vline(xintercept = -log2(2), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  labs(
+    title = "Differential gene expression \n Bambu 0.2 Day5-Day0",
+    x = "LogFC",
+    y = "-10log(p-value)",
+    color = "DE"
+  ) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot_dge_0.2 <- plot_dge_0.2_salmon + plot_dge_0.2_bambu
+plot_dge_0.2
+```
+
+The analysis identified 2467 down-regulated and 4093 up-regulated genes for Illumian+Salmon and 2093 down-regulated and 3265 up-regulated genes for PacBio+Bambu. In total, 26012 genes were tested and both technologies show similar results.
+
+The differential gene expression analysis mainly showed two things. First, it showed that the results of the different NDR thresholds were very similar, the main difference here was that more genes were in the data in the first place from the quantification (not shown here). Second, it showed that the results of the two different technologies, Illumina+Salmon and PacBio+Bambu, were quite similar, but still showed some differences. When treating the Illumina+Salmon data as the ground truth, it can be said that PacBio+Bambu is close to the truth, but still shows some deviations.
+
+Following a differential gene expression analysis, the identified genes can be grouped into gene sets of similar genes and a function or pathways analysis can be conducted on these gene sets. To do so, only the genes that were detected by the analyses of both technologies were used, so the overlap which can be seen in the UpSet plot. Since the results of the different NDR thresholds were very similar, only one of the thresholds, namely the NDR threshold of 0.2, was used. This is the highest threshold and therefore the data includes the most novel transcripts/genes.
+
+#### Grouping of Differentially Expressed Genes
+
+To group the differentially expressed genes, the average expression of each gene at each time point was calculated first. 
+
+```{r}
+# create a list of the genes called DE by both methods
+s <- which(de_genes_0.2$Salmon_0.2 == 1)
+b <- which(de_genes_0.2$Bambu_0.2 == 1)
+s_b <- intersect(s, b)
+DEG <- rownames(de_genes_0.2[s_b,])
+
+# calculate the average expression of each gene at each time point (average of the replicates)
+avg_expr <- as.data.frame(sapply(sort(unique(meta_samples$time))[c(1,4,6)], function(time) {
+  rowMeans(salmon_0.2_gene[, which(meta_samples$time == time)])
+}))
+
+# for time points 1, 2 and 4, only one replicate exists
+avg_expr$V4 <- unlist(as.vector(salmon_0.2_gene[, which(meta_samples$time == 1)]))
+avg_expr$V5 <- unlist(as.vector(salmon_0.2_gene[, which(meta_samples$time == 2)]))
+avg_expr$V6 <- unlist(as.vector(salmon_0.2_gene[, which(meta_samples$time == 4)]))
+
+avg_expr <- avg_expr[, c(1,4,5,2,6,3)]
+
+colnames(avg_expr) <- sort(unique(meta_samples$time))
+```
+
+The genes were then clustered using the their correlation as a distance measure (to be more precise: *1-correlation*). The cluster dendrogram of the hierarchical clustering as well as a heat map of the correlation including the dendrogram are shown below.
+
+```{r}
+corr_DEG <- cor(t(avg_expr[DEG,]), method = "spearman")
+hcl_DEG <- hclust(as.dist(1 - corr_DEG), method = "complete")
+plot(hcl_DEG, label = FALSE)
+```
+
+```{r}
+cl_DEG <- cutree(hcl_DEG, k = 4)
+heatmap.2(corr_DEG, Rowv = as.dendrogram(hcl_DEG), Colv = as.dendrogram(hcl_DEG),
+          trace = "none", scale = "none", labRow = NA, labCol = NA, col = viridis,
+          ColSideColors = rainbow(15)[cl_DEG])
+```
+
+The genes were then split into 4 clusters by visual inspection, which can be seen in the plot above. The bar indicates the 4 clusters by different colors (yellow, red, green and orange). The average expression of the genes of the 4 clusters at each time point are shown below:
+
+```{r}
+avg_expr_DEG_list <- tapply(names(cl_DEG), cl_DEG, function(x) avg_expr[x,])
+scaled_expr_DEG_list <- lapply(avg_expr_DEG_list, function(x) t(scale(t(x))))
+
+layout(matrix(1:4, nrow = 2, byrow = T))
+for(cl in 1:4)
+  boxplot(scaled_expr_DEG_list[[cl]],
+          main = paste0(cl, " (", nrow(scaled_expr_DEG_list[[cl]]), ")"))
+```
+
+The expression pattern of cluster 1 seems to follow a downwards trend, meaning that cluster 1 might contain genes that are mostly down-regulated over the time course. Clusters 2 and 3 show an upwards trend in expression, so these clusters might contain mostly genes that are up-regulated over the time course. Cluster 4 does not follow an apparent trend, there are many outliers visible at all time points and the vertical position of the boxes seem to fluctuate rather than following a trend. Moreover, this cluster is also the smallest one.
+
+For the following gene set analysis, the 4 clusters were used as gene sets.
+
+#### Gene Set Analysis
+
+The gene set analysis was performed using the method DAVID, which is a frequency-based method and computes which gene ontology terms are significantly enriched in a gene set compared to a background.
+
+To perform DAVID on the 4 gene sets, the ensemble gene ids of the genes must be extracted and then written into text files, which were then uploaded to the DAVID web tool. Since some of the newly discovered transcripts could not be mapped to an existing gene, there were some genes in the gene sets that did not have an ensemble gene id compatible with DAVID. These genes were therefore removed from the analysis. As explained in the methods part, the results of DAVID depend on the background gene set which is used during the analysis. Here, the background list contained all genes of the 0.2 NDR threshold data after filtering, with the exception of newly identified genes.
+
+```{r echo=FALSE}
+get_ensemble_id <- function(input_string) {
+  ensemble_id_version <- unlist(strsplit(input_string, "\\."))
+  return(ensemble_id_version[1])
+}
+input <- names(which(cl_DEG == 1))
+names_cluster1 <- unname(sapply(input, get_ensemble_id))
+
+input <- names(which(cl_DEG == 2))
+names_cluster2 <- unname(sapply(input, get_ensemble_id))
+
+input <- names(which(cl_DEG == 3))
+names_cluster3 <- unname(sapply(input, get_ensemble_id))
+
+input <- names(which(cl_DEG == 4))
+names_cluster4 <- unname(sapply(input, get_ensemble_id))
+
+input <- rownames(y_salmon_0.2)
+background <- unname(sapply(input, get_ensemble_id))
+
+write.table(
+  names_cluster1[-which(startsWith(names_cluster1, "Bambu"))],
+  file = "../genes_C1.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+write.table(
+  names_cluster2,
+  file = "../genes_C2.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+write.table(
+  names_cluster3,
+  file = "../genes_C3.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+write.table(
+  names_cluster4,
+  file = "../genes_C4.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+write.table(
+  background[-which(startsWith(background, "Bambu"))],
+  file = "../genes_expressed.txt",
+  quote = F,
+  row.names = F,
+  col.names = F
+)
+
+```
+
+The results were downloaded from the DAVID web tool as text files and contain terms describing the functions or pathways different genes are involved in. The results also contain other measures, like the count of genes of the input gene set that are associated with a specific term, as well as adjusted p-values showing the significance of this term in the input gene set. The results were then filtered by the adjusted p-values. The adjustment was conducted using the Benjamini-Hochberg method. Following, the results were sorted by their adjusted p-values in ascending order. Below, the top 20 most enriched terms are shown for each cluster:
+
+```{r}
+# import DAVID results
+cluster1 <- read.csv("../DAVID/C1_expressed_background.txt", sep = "\t")
+cluster2 <- read.csv("../DAVID/C2_expressed_background.txt", sep = "\t")
+cluster3 <- read.csv("../DAVID/C3_expressed_background.txt", sep = "\t")
+cluster4 <- read.csv("../DAVID/C4_expressed_background.txt", sep = "\t")
+
+# get significant terms
+cluster1_sig <- cluster1 %>%
+  filter(Benjamini < 0.01) %>%
+  arrange(Benjamini)
+
+cluster1_terms <- cluster1_sig$Term
+print(cluster1_terms[1:20])
+
+cluster2_sig <- cluster2 %>%
+  filter(Benjamini < 0.01) %>%
+  arrange(Benjamini)
+
+cluster2_terms <- cluster2_sig$Term
+print(cluster2_terms[1:20])
+
+cluster3_sig <- cluster3 %>%
+  filter(Benjamini < 0.01) %>%
+  arrange(Benjamini)
+
+cluster3_terms <- cluster3_sig$Term
+print(cluster3_terms[1:20])
+
+cluster4_sig <- cluster4 %>%
+  filter(Benjamini < 0.01) %>%
+  arrange(Benjamini)
+
+cluster4_terms <- cluster4_sig$Term
+print(cluster4_terms[1:20])
+```
+
+The significant results for gene set 1 include associations with neurological functions and pathways, for instance signalling at the neurological synapse. In total, 30 terms were identified as significantly enriched.
+
+For gene set 2, many significantly enriched terms were found (in total 250), which might be due to the large size of this gene set. The most significant terms include for instance Glycoprotein, Developmental Protein, Homeobox/domain and Extracellular Matrix.
+
+The results of gene set 3 include associations with the cell surface and the cell membrane as well as cellular signalling and cell adhesion. Here, 48 terms were found to be significantly enriched.
+
+Lastly, the results of gene sets 4 again include more terms then the ones of gene sets 1 and 3, but less then gene set 2 (in total 130). This seems to be surprising when just looking at the sizes of the genes sets, since gene set 4 is with 680 genes by far the smallest gene set. However, as described above, the average expression of genes in cluster 4 does not follow a trend similar to what can be observed in the other clusters, but it seems to fluctuate over the course of time. This might be be caused by cluster 4 being more heterogeneous than the other clusters, which could also explain why many more terms were found for this cluster than for clusters 1 and 3, even though they are larger. The significant terms of gene set 4 include functions related to the nucleus, DNA replication, transcription and translation.
+
+When looking at all functions or pathways that DAVID found an association with, it seems like many different cellular components are involved in the changes over the course of time. Especially for the larger clusters, many different gene ontology terms were significant. From this analysis, it is difficult to make assumptions about specific pathways or cellular functions that are up- or down-regulated over the course of time. However, it can be said that the treatment of the cells with differentiation factors possible effects many components of the cells.
+
+
+
+
+
+## Discussion
+
+
+
+
+
+### Exploratory Comparison of Illumina+Salmon and PacBio+Bambu
+
+With the exploratory analysis of the data the goal was to get a first overview of both data sets as well as the differences in the raw data between Illumina+Salmon and PacBio+Bambu for all 4 different NDR cutoffs and correlations between the two methods stratified by length. 
+
+Firstly, the results for all 4 cutoffs are very similar which is why we decided to also keep in only the results for one/two different NDR cutoffs for this part of the report as we gain no extra information when including all cutoffs and this would take up too much space. The only small differences can be explained by the fact that the NDR cutoffs determine the number of newly detected genes which doesn't have an effect on the comparison of both methods.
+
+Secondly, we performed the analysis on count and TPM data but decided to keep in only the result for TPM as we stratify by transcript length therefore making these results more interesting, also because the further analysis steps are also performed on TPM rather than the raw count data. For completeness the count results can be found in a separate file(`comparison_pacbio_illumina.qmd`).
+
+#### Differences 
+
+We wanted to further look at the differences between the Illumina data, so short read data produced by a thoroughly optimized and long-in-use method, and the long-read PacBio data, that has not been optimized well and is still suffering some biases. So we started with just looking at the difference in raw data. Looking at the percentages and the histograms the difference in raw data seems to be quite small the majority being <50 as well as the highest bar of the histograms being around 0. This was shown here only for the first column as all the other columns look very similar (no information gain). This would suggest that the Illumina and PacBio raw data seem to be quite similar with only minor deviations. 
+
+#### Correlation and stratification by length 
+
+Next, we looked at the correlation between Illumina and PacBio data. We performed both pearson and spearman correlation. When looking at the pearson results compared to spearman they look very unusual. One can't say that each sample is highest correlated with itself and some samples are highly correlated with all samples of all days (usually sample day 1 or 2) for both stratified and not stratified by length. Also, the scatter plot looks very unusual as for the different bins the summed up correlation is jumping up and down compared to heat maps and scatter plots of spearman which look as expected. This can be explained by the fact that spearman correlation is more robust to outliers than pearson and doesn't assume a linear relationship which works better with our data. So we decided to only focus on the plots produced by the spearman correlation. 
+
+Also, it is of note to mention that we decided to cut our data into intervals of transcript length 1000 which results in the bin 1000-2000 containing the most transcripts and making them an irregular size which then needs to be taken into account as 9000-10000 f.e. then contains a smaller amount of transcripts the correlation calculation then is based on. But this evens out as both bambu and salmon (which we compare) have those bin sizes and in the scatter plots we sum the correlations up. But for other bin sizes one could probably also see slightly different heat maps and scatter plots. Further, we did our analysis on the transcript and not on the gene level as we stratify it on the transcript length and this will be harder to do on the gene level and not as precise as one would need to use median transcript lengths. 
+
+So, looking at the heat maps not stratified by length they look the same for all the NDR cutoffs but the correlations are smaller on the gene level which could maybe be explained by the fact the we sum up the transcripts for the genes thus resulting in fewer data and a smaller correlation. 
+
+The heat maps for the length stratification again look similar between the 4 NDR cutoffs and show as expected highest correlation with their own sample between salmon and bambu as well as the replicates only with salmon-day3-rep1 standing out. This means that the individual samples between bambu and salmon do correlate well and are the most similar the their own sample in the other method and thus both methods seem to produce comparable results although the heat maps and correlation aren't as pronounced. This may be due to noise and outliers which even the spearman correlation isn't robust to. 
+
+Lastly, looking at the scatter plot which again is almost the same for all 4 NDR cutoffs we have a clear trend of a better summed up correlation towards longer lengths but a very low correlation for short transcript lengths (<=700 bp). This is due to the dropout in the PacBio data as it does not detect so short transcript lengths. The trend towards longer transcript lengths could be due to assignment of PacBio reads to transcripts getting more accurate with longer transcripts. This means that the PacBio and Illumina data are getting more correlated with longer transcripts and are less comparable with respect to shorter transcripts. 
+
+#### MDS 
+
+The MDS plots look again the same for all 4 NDR cutoffs and are comparable between Illumina and PacBio. MDS1 separates the samples in both methods by days and MDS2 by replicates. For Salmon the replicates are more spread out than for Bambu but the overall trend is the same with the differences being explained by the difference in method again showing that the raw (in this case count data) is comparable between the both methods. 
+
+All in all, this first part of our project gave an overview over the differences in the raw data between Illumina and PacBio and showed that the data has its differences but seems to be quite comparable especially when looking at the raw data differences as well as the correlation with there still being difficulties in shorter transcript lengths.
+
+
+
+
+
+### Differential Gene Expression Analysis
+
+The aim of the differential gene expression analysis was to identify genes that are differentially expressed over the course of time, and to compare these results of the Illumina+Salmon data (short-read data) with the results of the PacBio+Bambu data (long-read data) for 4 different NDR thresholds. 
+
+When comparing the different NDR thresholds, only minor differences could be detected. This was expected since the main difference between the data sets of the different thresholds were the number of newly detected genes. What was also expected about the differential gene expression analysis was the quite large number of genes that were called differentially expressed. For all NDR thresholds, the fraction of genes called differentially expressed out of all analyzed genes was around 30%. This was not unexpected since the RNA samples came from induced pluripotent stem cells that were treated with differentiation factors.
+
+The more interesting part was the comparison between the short-read data and the long-read data. The short-read data was produced from Illumina sequencing. Since Illumina sequencing has been in use for some time and therefore underwent lots of optimization, it is was treated as a ground truth in this project. The long read-data, however, was produced from PacBio sequencing, which suffers still from some biases, like a fragment length bias. Here, the data was produced using a new protocol, the MAS-ISO-seq protocol, which displays an optimization for PacBio sequencing. To evaluate this, the results of the PacBio data was compared to the Illumina data results. It could be shown that for both cases roughly the same amount of genes were identified as differentially expressed. However, when overlaying these genes, there were still many genes only called differentially expressed in one of the two cases. Moreover, when comparing the adjusted p-values and logFC values of the likelihood ratio tests, deviations between the two cases were visible. Nevertheless, a common trend could be detected, also for the differential gene expression when comparing only days 0 and 5. Together with the fact that the majority of differential expressed genes tend to be called by both methods, this shows that the analysis of the PacBio data already comes close to the truth, when treating Illumina as the truth. Due to the lack of PacBio data from older protocols, it is not possible to draw any conclusions regarding the improvement of this protocol compared to others.
+
+### Grouping of Differentially Expressed Genes
+
+The grouping of differentially expressed genes was only an intermediate step between the differential gene expression analysis and the gene set analysis. Nonetheless, it showed some interesting results and could possible influence the outcome of the gene set analysis.
+
+The number of clusters/sets the genes were grouped in (here 4) was choosen more or less arbitrarily, mostly guided by visual inspection. Since the number of clusters was rather small, and the number of genes that were grouped was rather large, most of the clusters were rather large as well. The most clusters contained more than 1000 genes. Since the clusters were used as input gene sets for the gene set analysis, this choice possible effected the outcome of the gene set analysis and will therefore be discussed again in the context of the gene set analysis.
+
+### Gene Set Analysis
+
+The gene set analysis was performed with the aim of making sense of the genes that the differential gene expression analysis identified as differentially expressed. To do so, the detected differentially expressed genes were grouped into 4 gene sets, which were then used as input for the gene set analysis performed with the web tool DAVID.
+
+For the gene set 1 and 3, around 30 to 50 gene ontology terms were found to be significantly enriched in the gene sets of about 1200 - 1500 genes. The terms for gene set 1 were mostly related to the neurological synapse and signalling between neurons, meaning that this cluster possible contains an enriched amount of genes involved in neurological signalling. For gene set 3, the terms were mostly related to the cell membrane, the cytoplasm and signal transduction. The terms found significant for these two gene sets were rather homogeneous. The same could be observed for gene set 4, which genes were found to be involved mostly in functions associated with the cell nucleus and RNA/DNA. Notably, the amount of terms that were detected to be significantly enriched in gene set 4 was much higher (130 terms) than in gene sets 1 and 3, even though gene set 4 was only around half the size of the other two (there are 680 genes in gene set 4). Assuming that more genes in a gene set usually lead to more terms to be found significant, this could mean that gene set 4 is less homogeneous than gene sets 1 and 3. In agreement with that, the average expression of genes in gene set 4 over time also shows more heterogeneity than observed in the other clusters. The largest gene set, gene set 2, shows the highest amount of significant terms (250 while containing 2158 genes). The results of this gene sets contain many terms associated with the Homeobox/Homeodomain and other developmental functions, but also with many other things like cell membrane/surface, signalling or the immune system. These results seem to be more heterogeneous than the results of the other 3 gene sets, which could be caused by the larger size of gene set 2 and/or by more heterogeneity between the genes of this gene set. To overcome this issue and get clearer results also for gene set 2, the number of clusters during the grouping of differentially expressed genes could have been choosen larger to create smaller and therefore possible more homogeneous gene sets. However, when cutting the tree with the `cutree` function, the largest cluster, so gene set 2, gets only notable smaller when setting the number of cluster to 13. At this point, many small clusters with less than 50 genes are created. Therefore, the number of clusters was left to be 4.
+
+In general, the terms that were found to be significant by the gene set analysis for all gene sets cover a lot of different functions and pathways in the cell. This could be explained by the experimental conditions, and by the cell line that was used. The cell line, namely WTC-11 cells, are induced pluripotent stem cells and therefore posses embryonic stem cell-like properties and are of pluripotent nature. These cells were treated with differentiation factors, meaning that these factors drove the process of cellular differentiation, so the differentiation of a less specialized cell into a more specialized one. Thus, many different cellular function and pathways could be affected. Since many differentially expressed genes (the ones in gene set 1) were associated with neurological functions, the treatment possible included neurotrophic factors like *Nerve Growth Factor* (NGF) or *Brain-Derived Neurotrophic Factor* (BDNF).
+
+
+
+
+
+## Outlook/Conclusion
+
+
+
+
+## Literature
+
+
+
+
+## Session Info and R Package Versions
+
+```{r}
+sessionInfo()
+```
+
+
+
+
+
+
+
+
+
