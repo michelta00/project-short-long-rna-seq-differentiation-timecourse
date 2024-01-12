@@ -3,11 +3,10 @@ This is a repository for STA426 AS24 project.
 # Table of contents
 1. [Abstract](#abstract)
 2. [Code availability](#code)
-    * [Structure](#structure)
-6. [Usage](#usage)
+4. [Structure](#structure)
+5. [Usage](#usage)
     * [Software requirements](#Software)
-    * [Installation](#installation)
-7. [References](#references)
+6. [References](#references)
 
 
 ## Abstract <a name="abstract"></a>

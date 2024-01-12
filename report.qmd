@@ -54,15 +54,15 @@ Here, we performed a similar analysis comparing two different count data sets, o
 
 ## Methods
 
-The data analysis steps were performed in RStudio (Posit team (2023), version 2023.6.2.561, R version 4.3.1). In this report file, not all code is shown, however, it can be found in the respective `.qmd` file (see [report.qmd](report.qmd)) or in other code files specified in the different methods sections below (see [code/](code/)).
+The data analysis steps were performed in RStudio (Posit team (2023), version 2023.6.2.561, R version 4.3.1). In this report file, not all code is shown, however, it can be found in the respective `.qmd` file (see `report.qmd`) or in other code files specified in the different methods sections below (see `code/`). An analysis of spiked-in control sequences can be found at `code/qmd/ctrl_seq.qmd`.
 
 ### Exploratory Comparison of Illumina+Salmon and PacBio+Bambu
 
-First, the data was imported and preprocessed (see [code/qmd/import_processing.qmd](code/qmd/import_processing.qmd)). Hereby, the control sequences were filtered out and counts and transcripts-per-million (TPM) saved separately for Illumina+Salmon (short read) data and PacBio+Bambu (long read data). The 16 different data frames (8 for TPM, 8 for counts) were sorted to have the same order and saved in `.rds` files (bambu, salmon and metadata) which were then used for further analysis. 
+First, the data was imported and preprocessed (see `code/qmd/import_processing.qmd`). Hereby, the control sequences were filtered out and counts and transcripts-per-million (TPM) saved separately for Illumina+Salmon (short read) data and PacBio+Bambu (long read data). The 16 different data frames (8 for TPM, 8 for counts) were sorted to have the same order and saved in `.rds` files (bambu, salmon and metadata) which were then used for further analysis. 
 
 #### Exploratory Analysis 
 
-The exploratory analysis was divided into (1) a direct comparison of the differences in the counts/TPM between Illumina+Salmon and PacBio+Bambu for all 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), and their visualization, (2) the computation of correlations between the different samples of Illumina+Salmon and PacBio+Bambu stratified by transcript length and (3) MDS plots. The whole analysis was performed for count data as well as TPM data but it was decided to keep the TPM in the report file as it is more representative when performing the stratification by length (further explained in discussion). The count plots as well as all other TPM plots not shown in the following can be found in [code/qmd/comparison_pacbio_illumina.qmd](code/qmd/comparison_pacbio_illumina.qmd). 
+The exploratory analysis was divided into (1) a direct comparison of the differences in the counts/TPM between Illumina+Salmon and PacBio+Bambu for all 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), and their visualization, (2) the computation of correlations between the different samples of Illumina+Salmon and PacBio+Bambu stratified by transcript length and (3) MDS plots. The whole analysis was performed for count data as well as TPM data but it was decided to keep the TPM in the report file as it is more representative when performing the stratification by length (further explained in discussion). The count plots as well as all other TPM plots not shown in the following can be found in `code/qmd/comparison_pacbio_illumina.qmd`. 
 
 #### Differences Illumina+Salmon vs. PacBio+Bambu 
 
@@ -113,7 +113,7 @@ The Database for Annotation, Visualization and Integrated Discovery (DAVID) tool
 
 Differential Transcript Usage (DTU) was performed to identify gene expression alterations and isoform switching (Marques-Coelho *et al*, 2021). DTU complements DGE as it enables the identification of alternative splicing and isoform switches even if the gene expression does not change between conditions (Marques-Coelho *et al*, 2021; Love *et al*, 2018). The aim was to identify proportional differences in isoform composition of a gene in samples generated over course of the 5 days and to compare the results of the DTU analysis of the Illumina+Salmon data (short read data) with the results of the PacBio+Bambu data (long read data). 
 
-The available workflows (Love *et al*, 2018; Lin, 2021) were tested on the given data set (see [code/qmd/DTU_test_analysis.qmd](code/qmd/DTU_test_analysis.qmd)). The workflow made use of 3 libraries vignettes: DRIMSeq, DEXSeq and stageR. DEXSeq assumes that the feature (transcript) counts follow a negative binomial (NB) distribution and considers them as relative proportions of the group (the gene) using an interaction term in a generalized linear model (GLM) (Love *et al*, 2018; Anders *et al*, 2012). DRIMSeq assumes that feature proportions follow the Dirichlet distribution (an Dirichlet Multinomial model (MD) for each gene) where the total count for the gene is considered fixed (Love *et al*, 2018; Nowicka *et al*, 2016). The filtering was done with DRIMSeq package with both the minimal number of samples where the genes should be expressed and the the minimal number of samples where the features should be expressed set to 3 (the number of replicates on day 0 and 5). Additional filters were also added: it was required for a transcript to (1) have a count of at least 10 in at least 3 samples, (2) have a relative abundance proportion of at least 0.1 in at least 3 samples, and (3) have a total count of 10 in the corresponding gene in all 3 samples. The filtered DRIMSeq object was used for the DEXSeq workflow, as the filtering was easier, and the analysis was sped up. The design formula was taken as `~sample + exon + day:exon` (same as for DGE analysis). DEXSeq analysis included the estimation of size factors, estimation of dispersion, and likelihood ratio tests for differential exon usage. The results tables (log2 fold changes and p-values) were generated and per-gene adjusted p-values were computed. The stageR package was used for post-processing of the calculated p-values through stage-wise analysis of the data, by screening first at the gene level for evidence of DTU (screening stage) and confirming which transcripts within those significant genes show evidence of DTU (confirmation stage). `stageR` analysis was performed with an *overall false discovery rate* (OFDR, alpha parameter) equal to 0.05. A custom function `plotExpression` was created to plot the transcript expression of a significant gene (Lin, 2021). `UpSetR` plots and `Venn` diagrams were used to visualize the overlap between the transcripts identified by the two methods. 
+The available workflows (Love *et al*, 2018; Lin, 2021) were tested on the given data set (see `code/qmd/DTU_test_analysis.qmd`). The workflow made use of 3 libraries vignettes: DRIMSeq, DEXSeq and stageR. DEXSeq assumes that the feature (transcript) counts follow a negative binomial (NB) distribution and considers them as relative proportions of the group (the gene) using an interaction term in a generalized linear model (GLM) (Love *et al*, 2018; Anders *et al*, 2012). DRIMSeq assumes that feature proportions follow the Dirichlet distribution (an Dirichlet Multinomial model (MD) for each gene) where the total count for the gene is considered fixed (Love *et al*, 2018; Nowicka *et al*, 2016). The filtering was done with DRIMSeq package with both the minimal number of samples where the genes should be expressed and the the minimal number of samples where the features should be expressed set to 3 (the number of replicates on day 0 and 5). Additional filters were also added: it was required for a transcript to (1) have a count of at least 10 in at least 3 samples, (2) have a relative abundance proportion of at least 0.1 in at least 3 samples, and (3) have a total count of 10 in the corresponding gene in all 3 samples. The filtered DRIMSeq object was used for the DEXSeq workflow, as the filtering was easier, and the analysis was sped up. The design formula was taken as `~sample + exon + day:exon` (same as for DGE analysis). DEXSeq analysis included the estimation of size factors, estimation of dispersion, and likelihood ratio tests for differential exon usage. The results tables (log2 fold changes and p-values) were generated and per-gene adjusted p-values were computed. The stageR package was used for post-processing of the calculated p-values through stage-wise analysis of the data, by screening first at the gene level for evidence of DTU (screening stage) and confirming which transcripts within those significant genes show evidence of DTU (confirmation stage). `stageR` analysis was performed with an *overall false discovery rate* (OFDR, alpha parameter) equal to 0.05. A custom function `plotExpression` was created to plot the transcript expression of a significant gene (Lin, 2021). `UpSetR` plots and `Venn` diagrams were used to visualize the overlap between the transcripts identified by the two methods. 
 
 
 
@@ -124,7 +124,7 @@ The available workflows (Love *et al*, 2018; Lin, 2021) were tested on the given
 
 #### Load data
 
-The data is loaded from RDS-object files (bambu, salmon and metadata, see [code/qmd/import_processing.qmd](code/qmd/import_processing.qmd)). For each of the 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), two data frames exist containing the expression data (counts) as well as the TPMs of the two different technologies used to obtain the data:
+The data is loaded from RDS-object files (bambu, salmon and metadata, see `code/qmd/import_processing.qmd`). For each of the 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), two data frames exist containing the expression data (counts) as well as the TPMs of the two different technologies used to obtain the data:
 
     1. Illumina sequencing and Salmon quantification (short read)
     2. PacBio sequencing and Bambu quantification (long read)
@@ -217,7 +217,7 @@ On the transcript level, the differences were smaller than 50 for around 92% of 
 
 #### Histograms of Differences 
 
-The differences were then visualized for the first column of the data frames. Here, only the plots for the 0.025 and 0.05 thresholds on transcript and gene level are shown because all 8 histograms look very similar. The other histograms can be seen in [code/qmd/comparison_pacbio_illumina.qmd](code/qmd/comparison_pacbio_illumina.qmd). 
+The differences were then visualized for the first column of the data frames. Here, only the plots for the 0.025 and 0.05 thresholds on transcript and gene level are shown because all 8 histograms look very similar. The other histograms can be seen in `code/qmd/comparison_pacbio_illumina.qmd`. 
 
 ```{r, warning = FALSE, echo = FALSE}
 #only always performed on first column
@@ -323,7 +323,7 @@ heat3 <- pheatmap(cor_0.025_gene_sp, cluster_rows = FALSE, cluster_cols = FALSE,
 
 In the spearman heat maps, there is a lower correlation on the gene level compared to the transcript level. Moreover, the day 2 and day 3 Bambu samples seem to be highly correlated also with the day 4 and day 5 Salmon samples. 
 
-Second, the correlation stratified by length was plotted for all 4 NDR thresholds. Due to no further information gain, only one Pearson plot and representatively one Spearman heat map (for one bin, we chose 1000-2000 as its the most abundant transcript length) for each NDR threshold as well as all 4 scatter plots of the summed up correlation stratified by length are shown here. The individual heat maps are not shown in the report but can be commented out in the `.qmd` file (see [report.qmd](report.qmd)) for their visualization.   
+Second, the correlation stratified by length was plotted for all 4 NDR thresholds. Due to no further information gain, only one Pearson plot and representatively one Spearman heat map (for one bin, we chose 1000-2000 as its the most abundant transcript length) for each NDR threshold as well as all 4 scatter plots of the summed up correlation stratified by length are shown here. The individual heat maps are not shown in the report but can be commented out in the `.qmd` file (see `report.qmd`) for their visualization.   
 
 ```{r message = FALSE, echo = FALSE}
 #0.025 
@@ -885,11 +885,11 @@ The MDS plots look very similar comparing all 4 NDR thresholds. When comparing t
 
 ### Differential Gene Expression and Gene Set Analyses
 
-Since the DGE analysis of the different NDR thresholds showed very similar results, only the 0.2 NDR threshold is shown here. The analysis of all 4 NDR thresholds can be found in [code/html/dge_analysis.html](code/html/dge_analysis.html) and in [code/qmd/dge_analysis.qmd](code/qmd/dge_analysis.qmd).
+Since the DGE analysis of the different NDR thresholds showed very similar results, only the 0.2 NDR threshold is shown here. The analysis of all 4 NDR thresholds can be found in `code/html/dge_analysis.html` and in `code/qmd/dge_analysis.qmd`.
 
 #### Load data
 
-The data is loaded from RDS-objects that have been created with this file: [code/qmd/import_processing.qmd](code/qmd/import_processing.qmd). For each of the 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), two data frames containing the expression data (counts) of the two different technologies were loaded for the DGE analysis:
+The data is loaded from RDS-objects that have been created with this file: `code/qmd/import_processing.qmd`. For each of the 4 NDR thresholds (0.025, 0.05, 0.1, 0.2), two data frames containing the expression data (counts) of the two different technologies were loaded for the DGE analysis:
 
     1. Illumina sequencing and Salmon quantification (short read)
     2. PacBio sequencing and Bambu quantification (long read)
@@ -1387,7 +1387,7 @@ plotExpression <- function(expData = NULL, geneID = NULL, samps = NULL, isPropor
 }
 ```
 
-For detailed explanations of the steps refer to this file: [code/qmd/DTU_test_analysis.qmd](code/qmd/DTU_test_analysis.qmd).
+For detailed explanations of the steps refer to this file: `code/qmd/DTU_test_analysis.qmd`.
 
 ```{r}
 # `samps` dataframe relates the sample identifiers to the conditions (in this case, day of the experiment)
@@ -1574,8 +1574,8 @@ The comparison of the adjusted p-values for transcripts shows low correlation be
 
 With the exploratory analysis of the data the goal was to get a first overview of both data sets as well as the differences in the raw data between Illumina+Salmon and PacBio+Bambu for all 4 different NDR thresholds and correlations between the two methods stratified by length. 
 
-The results for all 4 thresholds were similar, thus some plots were omitted in the report and can be viewed at [code/qmd/comparison_pacbio_illumina_tpm.qmd](code/qmd/comparison_pacbio_illumina_tpm.qmd). The small differences can be explained by the fact that the NDR thresholds determine the number of newly detected genes which doesn't have an effect on the comparison of both methods.
-Secondly, the analysis was performed on count and TPM data. It was decided to keep in this report only the result for TPMs due to stratification by transcript length making these results more interesting and comparable, and also because the further analysis steps were performed on TPM rather than the raw count data. For completeness the count results can be found in a separate file, [code/qmd/comparison_pacbio_illumina_counts.qmd](code/qmd/comparison_pacbio_illumina_counts.qmd).
+The results for all 4 thresholds were similar, thus some plots were omitted in the report and can be viewed at `code/qmd/comparison_pacbio_illumina_tpm.qmd`. The small differences can be explained by the fact that the NDR thresholds determine the number of newly detected genes which doesn't have an effect on the comparison of both methods.
+Secondly, the analysis was performed on count and TPM data. It was decided to keep in this report only the result for TPMs due to stratification by transcript length making these results more interesting and comparable, and also because the further analysis steps were performed on TPM rather than the raw count data. For completeness the count results can be found in a separate file, `code/qmd/comparison_pacbio_illumina_counts.qmd`.
 
 #### Differences 
 
